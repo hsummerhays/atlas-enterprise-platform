@@ -5,14 +5,13 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 @Component
-public class TestGenerationAgent implements AIAgent {
+public class CarrierAdapterAgent implements AIAgent {
 
-    private static final Logger log = LoggerFactory.getLogger(TestGenerationAgent.class);
+    private static final Logger log = LoggerFactory.getLogger(CarrierAdapterAgent.class);
 
     @Override
     public AgentResult run(AgentTask task) {
-        log.info("TestGenerationAgent running task...");
-        // Execute the task and return result
+        log.info("CarrierAdapterAgent running task...");
         return task.execute();
     }
 }

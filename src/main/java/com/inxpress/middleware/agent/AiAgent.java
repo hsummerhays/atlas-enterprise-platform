@@ -1,6 +1,5 @@
 package com.inxpress.middleware.agent;
 
-public interface AiAgent {
-    String getAgentName();
-    AgentResponse execute(AgentRequest request);
+public interface AIAgent {
+    AgentResult run(AgentTask task);
 }

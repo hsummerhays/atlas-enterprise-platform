@@ -2,9 +2,9 @@ package com.inxpress.middleware.agent;
 
 import java.util.Map;
 
-public record AgentResponse(
+public record AgentResult(
     String agentName,
     boolean success,
-    String outputData,
+    String output,
     Map<String, Object> metadata
 ) {}

@@ -4,6 +4,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/agents")
@@ -21,10 +22,25 @@ public class AgentController {
     }
 
     @PostMapping("/{name}/execute")
-    public ResponseEntity<AgentResponse> executeAgent(
+    public ResponseEntity<AgentResult> executeAgent(
             @PathVariable String name,
-            @RequestBody AgentRequest request) {
-        AgentResponse response = coordinator.routeRequest(name, request);
-        return ResponseEntity.ok(response);
+            @RequestBody AgentTaskDto taskDto) {
+        
+        // Map DTO to AgentTask execution behavior
+        AgentTask task = () -> new AgentResult(
+                name,
+                true,
+                "Executed task with input: " + taskDto.inputData(),
+                taskDto.context() != null ? taskDto.context() : Map.of()
+        );
+        
+        AgentResult result = coordinator.runAgent(name, task);
+        return ResponseEntity.ok(result);
     }
+
+    // Task payload payload mapping
+    public record AgentTaskDto(
+        String inputData,
+        Map<String, Object> context
+    ) {}
 }
