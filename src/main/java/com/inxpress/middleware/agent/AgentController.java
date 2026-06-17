@@ -11,14 +11,21 @@ import java.util.Map;
 public class AgentController {
 
     private final AgentCoordinator coordinator;
+    private final AgentMetricsService metricsService;
 
-    public AgentController(AgentCoordinator coordinator) {
+    public AgentController(AgentCoordinator coordinator, AgentMetricsService metricsService) {
         this.coordinator = coordinator;
+        this.metricsService = metricsService;
     }
 
     @GetMapping
     public ResponseEntity<List<String>> listAgents() {
         return ResponseEntity.ok(coordinator.getRegisteredAgents());
+    }
+
+    @GetMapping("/metrics")
+    public ResponseEntity<List<AgentMetrics>> getMetrics() {
+        return ResponseEntity.ok(metricsService.getAllMetrics());
     }
 
     @PostMapping("/{name}/execute")
