@@ -2,6 +2,24 @@
 
 A production-ready Shipping Middleware built using **Java 25** and **Spring Boot 4 / Jakarta EE 11** designed to standardize shipping operations for InXpress and integrate seamlessly with HubSpot CRM.
 
+## 🎓 The Modern AI Software Development Loop
+The InXpress middleware architecture is designed around the industry-moving developer operations paradigm:
+```
+[ Humans Define Intent ]
+           │ (Issues, Spec Changes, Prompts)
+           ▼
+    [ AI Implements ]     (Scaffolds code, test files via AIAgents)
+           │
+           ▼
+    [ CI Validates ]      (Automated Maven/Gradle tests & security checks)
+           │
+           ▼
+   [ Humans Approve ]     (Manual review of PRs in GitHub)
+           │
+           ▼
+   [ Cloud Deploys ]      (ECR Push, EKS deployment rollout)
+```
+
 ## 🚀 Architecture Overview
 
 This project implements a **Canonical Shipping Domain Model** to decouple client-facing business logic from carrier-specific payload definitions. 
