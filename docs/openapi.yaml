@@ -1,0 +1,30 @@
+openapi: 3.0.3
+info:
+  title: InXpress Shipping Middleware API
+  version: 1.0.0
+  description: Standardized shipping domain endpoint specifications.
+paths:
+  /api/v1/shipments:
+    post:
+      summary: Create shipment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: Shipment created successfully
+  /api/v1/shipments/{id}/book:
+    post:
+      summary: Book shipment with Carrier
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Shipment booked successfully
