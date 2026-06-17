@@ -22,9 +22,9 @@ This document summarizes the core architectural principles, high-level direction
 * **Human-in-the-Loop (HITL) Governance**: All code created or refactored dynamically by automated tools is placed on isolated feature branches requiring human review, testing, and PR approval.
 * **Mandatory Quality Gates**: Strict coverage thresholds (JaCoCo) and security SAST/SCA scanning gate the automated merge process.
 
----
-
 ## 💬 Interview Discussion Strategy & Talking Points
+
+> *"My goal is not to replace engineers with AI, but to amplify engineers by automating repetitive work so teams can focus on architecture, business outcomes, and customer value."*
 
 > *"I've been experimenting with AI-native engineering workflows and agent-assisted development in my personal projects. I'd be excited to explore how those concepts could be applied at InXpress in a way that fits the team's goals, existing systems, and collaborative processes."*
 
@@ -38,6 +38,14 @@ This document summarizes the core architectural principles, high-level direction
 ## 🎨 Interview Demonstration Playbook (Teaser vs. Reveal)
 
 To demonstrate high-level vision without giving away the proprietary execution blueprints prematurely:
+
+### 0. Technical Interview Guidelines
+If asked about AI-generated PRs:
+1. **Explain the high-level concept** clearly.
+2. **Draw/Walk through the loop**: `Issue ➔ AI ➔ PR ➔ CI ➔ Human Review ➔ Deploy`.
+3. **Mention personal experimentation**: State that you've been building and testing these paradigms in your spare time.
+4. **Stop there** and let their curiosity guide the flow.
+5. **Show this document (`ArchitecturalVision.md`)** if they request a visual architectural summary. Do *not* initially present `ImplementationPlaybook.md`.
 
 ### 1. The 2-Minute Whiteboard Story
 Use this hook naturally during conversations about AI-generated PRs:
