@@ -166,6 +166,17 @@ To ensure reliability, compliance, and prevent autonomous action drift, the AI A
 * **Secret Redaction**: API keys, credentials, and IAM tokens are injected at runtime via Kubernetes Secrets/AWS Secrets Manager and are strictly blacklisted from the agent context.
 * **Tamper-Proof Audit Logging**: Every agent execution, input payload, and output recommendation is serialized and stored in an immutable **Amazon DynamoDB** table for audit compliance.
 
+### 🛡️ AI Agent Permission Matrix
+To maintain corporate security compliance, agent execution scopes are strictly restricted:
+
+| Explicitly ALLOWED | Strictly FORBIDDEN |
+| :--- | :--- |
+| ✓ Create Git branches | ✗ Merge PRs to main / release branches |
+| ✓ Commit modified code to feature branch | ✗ Deploy code directly to environments |
+| ✓ Open Pull Requests | ✗ Modify/view environment secret keys |
+| ✓ Post comment summaries on PR | ✗ Access production database tables directly |
+
+
 ---
 
 ## 🚢 CI/CD Pipeline
