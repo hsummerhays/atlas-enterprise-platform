@@ -1,5 +1,5 @@
 package com.inxpress.middleware.agent;
 
-public interface AgentTask {
+public interface AgentWorkItem {
     AgentResult execute();
 }

@@ -22,6 +22,20 @@ This document summarizes the core architectural principles, high-level direction
 * **Human-in-the-Loop (HITL) Governance**: All code created or refactored dynamically by automated tools is placed on isolated feature branches requiring human review, testing, and PR approval.
 * **Mandatory Quality Gates**: Strict coverage thresholds (JaCoCo) and security SAST/SCA scanning gate the automated merge process.
 
+---
+
+## 🛠️ Core Engineering Principles
+
+* **Small Batch Sizes**: Focus on rapid, low-risk deployment cycles (targeting 3-day iterations/sprints).
+* **AI-Assisted Development**: Amplify developers by automating boilerplate generation, test cases, and OpenAPI specs.
+* **Human-in-the-Loop Governance**: Always require human oversight and explicit approval before code changes merge to production.
+* **Event-Driven Architecture**: Decouple microservices using pub-sub mechanisms to optimize performance and resilience.
+* **Security by Default**: Integrate vulnerability scans, static analysis, and credential blocking natively in every workflow step.
+* **Observability First**: Embed telemetry, audit log records, and key metrics logs as non-negotiable features of any service rollout.
+* **Developer Experience (DX) Matters**: Keep building environments fast, clean, and frictionless for engineering teams.
+
+---
+
 ## 💬 Interview Discussion Strategy & Talking Points
 
 > *"My goal is not to replace engineers with AI, but to amplify engineers by automating repetitive work so teams can focus on architecture, business outcomes, and customer value."*

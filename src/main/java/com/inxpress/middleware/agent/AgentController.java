@@ -31,11 +31,11 @@ public class AgentController {
     @PostMapping("/{name}/execute")
     public ResponseEntity<AgentResult> executeAgent(
             @PathVariable String name,
-            @RequestBody AgentTaskDto taskDto) {
+            @RequestBody AgentWorkItemDto workItemDto) {
 
         AgentRequest request = new AgentRequest(
-                taskDto.inputData(),
-                taskDto.context() != null ? taskDto.context() : Map.of(),
+                workItemDto.inputData(),
+                workItemDto.context() != null ? workItemDto.context() : Map.of(),
                 "api"
         );
 
@@ -43,7 +43,7 @@ public class AgentController {
         return ResponseEntity.ok(result);
     }
 
-    public record AgentTaskDto(
+    public record AgentWorkItemDto(
         String inputData,
         Map<String, Object> context
     ) {}
