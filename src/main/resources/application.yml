@@ -25,7 +25,7 @@ spring:
           jwk-set-uri: ${JWT_JWK_SET_URI:https://example.com/.well-known/jwks.json}
           issuer-uri: ${JWT_ISSUER_URI:https://example.com}
 
-# AWS SNS/SQS Settings
+# AWS SNS/SQS/DynamoDB Settings
 aws:
   region: ${AWS_REGION:us-east-1}
   sns:
@@ -33,6 +33,16 @@ aws:
     endpoint-override: ${AWS_SNS_ENDPOINT_OVERRIDE:}
   sqs:
     endpoint-override: ${AWS_SQS_ENDPOINT_OVERRIDE:}
+    agent-tasks-queue-url: ${AWS_SQS_AGENT_TASKS_QUEUE_URL:http://localhost:4566/000000000000/agent-tasks}
+  dynamodb:
+    endpoint-override: ${AWS_DYNAMODB_ENDPOINT_OVERRIDE:}
+    audit-table-name: ${AWS_DYNAMODB_AUDIT_TABLE:agent-execution-audit}
+
+# Claude AI settings
+claude:
+  api-key: ${CLAUDE_API_KEY:}
+  model: claude-opus-4-8
+  max-tokens: 4096
 
 logging:
   level:

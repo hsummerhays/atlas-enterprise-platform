@@ -107,6 +107,33 @@ The middleware embeds an autonomic AI Agent Layer designed to automate developer
 
 ---
 
+## ⚡ SQS Integration & GitHub Webhook Triggers
+
+The middleware is integrated with SQS task queueing and GitHub webhook events to support zero-touch asynchronous execution:
+
+```
+[ GitHub Issue Opened ] ──► [ GitHubWebhookController ]
+                                    │
+                                    ▼ (Enqueue Agent Task)
+                            [ SQS Queue ] (agent-tasks-queue)
+                                    │
+                                    ▼ (Poll & Process)
+                            [ SqsAgentTaskConsumer ]
+                                    │
+                                    ▼ (Execute Task via Coordinator)
+                            [ Target AIAgent ]
+                                    │
+                                    ▼ (Write Execution Audit Logs)
+                            [ AgentAuditLogService ] ──► [ DynamoDB: agent-execution-audit ]
+```
+
+* **Webhook Endpoint (`/api/v1/webhooks/github`)**: Listens for GitHub Issue opened webhooks, dynamically matches search keywords (like `test`, `carrier`, `doc`, `security`) to resolve the target agent, and publishes the task payload to SQS.
+* **SQS Task Consumer (`SqsAgentTaskConsumer`)**: Continually polls the configured SQS queue using Spring `@Scheduled` tasks to process and route agent task triggers.
+* **Claude LLM Client (`ClaudeService`)**: Integrates Anthropic OkHttp Java SDK, configuring Adaptive Thinking features to enable advanced reasoning capabilities.
+* **DynamoDB Auditing (`AgentAuditLogService`)**: Automatically logs the execution ID, input data, success status, output results, and timestamps to `agent-execution-audit` DynamoDB table on every run.
+
+---
+
 ## 🌙 Nightly AI Workflow (10 PM Job)
 
 Orchestrated using **AWS MWAA (Managed Workflows for Apache Airflow)**, the system triggers a nightly development and maintenance loop defined in [nightly_ai_workflow.py](file:///c:/HughApps/InXpressErpMiddleware/dags/nightly_ai_workflow.py):

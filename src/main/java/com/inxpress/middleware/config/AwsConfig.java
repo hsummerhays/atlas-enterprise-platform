@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.sns.SnsClient;
 import software.amazon.awssdk.services.sqs.SqsClient;
 
@@ -21,6 +22,9 @@ public class AwsConfig {
     @Value("${aws.sqs.endpoint-override:#{null}}")
     private String sqsEndpointOverride;
 
+    @Value("${aws.dynamodb.endpoint-override:#{null}}")
+    private String dynamoDbEndpointOverride;
+
     @Bean
     public SnsClient snsClient() {
         var builder = SnsClient.builder()
@@ -37,6 +41,16 @@ public class AwsConfig {
                 .region(Region.of(region));
         if (sqsEndpointOverride != null && !sqsEndpointOverride.isBlank()) {
             builder.endpointOverride(URI.create(sqsEndpointOverride));
+        }
+        return builder.build();
+    }
+
+    @Bean
+    public DynamoDbClient dynamoDbClient() {
+        var builder = DynamoDbClient.builder()
+                .region(Region.of(region));
+        if (dynamoDbEndpointOverride != null && !dynamoDbEndpointOverride.isBlank()) {
+            builder.endpointOverride(URI.create(dynamoDbEndpointOverride));
         }
         return builder.build();
     }

@@ -32,20 +32,17 @@ public class AgentController {
     public ResponseEntity<AgentResult> executeAgent(
             @PathVariable String name,
             @RequestBody AgentTaskDto taskDto) {
-        
-        // Map DTO to AgentTask execution behavior
-        AgentTask task = () -> new AgentResult(
-                name,
-                true,
-                "Executed task with input: " + taskDto.inputData(),
-                taskDto.context() != null ? taskDto.context() : Map.of()
+
+        AgentRequest request = new AgentRequest(
+                taskDto.inputData(),
+                taskDto.context() != null ? taskDto.context() : Map.of(),
+                "api"
         );
-        
-        AgentResult result = coordinator.runAgent(name, task);
+
+        AgentResult result = coordinator.runAgent(name, request);
         return ResponseEntity.ok(result);
     }
 
-    // Task payload payload mapping
     public record AgentTaskDto(
         String inputData,
         Map<String, Object> context

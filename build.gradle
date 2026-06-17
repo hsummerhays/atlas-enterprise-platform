@@ -36,10 +36,14 @@ dependencies {
     implementation 'org.flywaydb:flyway-database-postgresql'
     runtimeOnly 'org.postgresql:postgresql'
 
-    // AWS SDK v2 for SNS/SQS
+    // AWS SDK v2 for SNS/SQS/DynamoDB
     implementation platform('software.amazon.awssdk:bom:2.29.35')
     implementation 'software.amazon.awssdk:sns'
     implementation 'software.amazon.awssdk:sqs'
+    implementation 'software.amazon.awssdk:dynamodb'
+
+    // Anthropic Java SDK for LLM calls
+    implementation 'com.anthropic:anthropic-java:2.34.0'
 
     // Testing
     testImplementation 'com.h2database:h2'

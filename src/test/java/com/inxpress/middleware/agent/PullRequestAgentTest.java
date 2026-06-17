@@ -5,6 +5,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.util.Map;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
@@ -16,13 +18,12 @@ public class PullRequestAgentTest {
 
     @Test
     public void testPullRequestAgentOrchestration() {
-        AgentTask task = () -> new AgentResult("PullRequestAgent", true, "Add UPS adapter", java.util.Map.of());
-        
-        // Execute agent run (fallback mock branch and PR are generated safely)
-        AgentResult result = pullRequestAgent.run(task);
+        AgentRequest request = new AgentRequest("Add UPS adapter", Map.of(), "test");
+        AgentResult result = pullRequestAgent.run(request);
 
         assertTrue(result.success());
         assertEquals("PullRequestAgent", result.agentName());
         assertTrue(result.output().contains("PR Opened"));
+        assertTrue(result.metadata().containsKey("prUrl"));
     }
 }

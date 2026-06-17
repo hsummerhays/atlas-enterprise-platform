@@ -12,19 +12,26 @@ import java.util.stream.Collectors;
 public class AgentCoordinator {
 
     private final Map<String, AIAgent> agents;
+    private final AgentMetricsService metricsService;
+    private final AgentAuditLogService auditLogService;
 
-    public AgentCoordinator(List<AIAgent> agentList) {
+    public AgentCoordinator(List<AIAgent> agentList, AgentMetricsService metricsService, AgentAuditLogService auditLogService) {
         this.agents = agentList.stream()
                 .collect(Collectors.toMap(
                         agent -> agent.getClass().getSimpleName().toLowerCase(),
                         Function.identity()
                 ));
+        this.metricsService = metricsService;
+        this.auditLogService = auditLogService;
     }
 
-    public AgentResult runAgent(String agentName, AgentTask task) {
+    public AgentResult runAgent(String agentName, AgentRequest request) {
         AIAgent agent = Optional.ofNullable(agents.get(agentName.toLowerCase()))
                 .orElseThrow(() -> new IllegalArgumentException("Unknown AI Agent: " + agentName));
-        return agent.run(task);
+        AgentResult result = agent.run(request);
+        metricsService.recordPrGenerated(agentName, 30);
+        auditLogService.logExecution(agentName, request, result);
+        return result;
     }
 
     public List<String> getRegisteredAgents() {
