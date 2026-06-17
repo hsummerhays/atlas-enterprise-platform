@@ -1,0 +1,102 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inxpress-middleware
+  namespace: shipping
+  labels:
+    app: inxpress-middleware
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: inxpress-middleware
+  template:
+    metadata:
+      labels:
+        app: inxpress-middleware
+    spec:
+      containers:
+      - name: middleware
+        image: <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/inxpress-middleware:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+        env:
+        - name: DB_HOST
+          value: "inxpress-rds.c123456789.us-east-1.rds.amazonaws.com"
+        - name: DB_PORT
+          value: "5432"
+        - name: DB_NAME
+          value: "inxpress_db"
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: db-credentials
+              key: username
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: db-credentials
+              key: password
+        - name: JWT_JWK_SET_URI
+          value: "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_xxxxxxxxx/.well-known/jwks.json"
+        - name: JWT_ISSUER_URI
+          value: "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_xxxxxxxxx"
+        - name: AWS_REGION
+          value: "us-east-1"
+        - name: AWS_SNS_TOPIC_ARN
+          value: "arn:aws:sns:us-east-1:123456789012:shipment-events"
+        resources:
+          limits:
+            cpu: "1"
+            memory: 1024Mi
+          requests:
+            cpu: 500m
+            memory: 512Mi
+        readinessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8080
+          initialDelaySeconds: 15
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8080
+          initialDelaySeconds: 20
+          periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: inxpress-middleware-service
+  namespace: shipping
+spec:
+  selector:
+    app: inxpress-middleware
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 8080
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: inxpress-middleware-ingress
+  namespace: shipping
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: inxpress-middleware-service
+            port:
+              number: 80
