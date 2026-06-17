@@ -94,4 +94,9 @@ public class PullRequestAgent implements AIAgent {
                 Map.of("prUrl", prUrl, "targetBranch", branchName)
         );
     }
+
+    @Override
+    public ApprovalLevel getRequiredApprovalLevel() {
+        return ApprovalLevel.FEATURE;
+    }
 }

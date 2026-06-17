@@ -114,4 +114,9 @@ public class TestGenerationAgent implements AIAgent {
                 }
                 """;
     }
+
+    @Override
+    public ApprovalLevel getRequiredApprovalLevel() {
+        return ApprovalLevel.TESTS;
+    }
 }

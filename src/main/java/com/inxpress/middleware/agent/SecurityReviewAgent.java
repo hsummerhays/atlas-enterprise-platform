@@ -43,4 +43,9 @@ public class SecurityReviewAgent implements AIAgent {
                 Map.of("requestedBy", request.requestedBy() != null ? request.requestedBy() : "unknown")
         );
     }
+
+    @Override
+    public ApprovalLevel getRequiredApprovalLevel() {
+        return ApprovalLevel.SECURITY;
+    }
 }

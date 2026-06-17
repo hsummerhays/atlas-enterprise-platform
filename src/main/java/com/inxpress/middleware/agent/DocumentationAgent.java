@@ -144,4 +144,9 @@ public class DocumentationAgent implements AIAgent {
                 ```
                 """;
     }
+
+    @Override
+    public ApprovalLevel getRequiredApprovalLevel() {
+        return ApprovalLevel.DOCUMENTATION;
+    }
 }
