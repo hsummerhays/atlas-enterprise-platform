@@ -10,6 +10,7 @@ public class GitHubProperties {
     private String token;
     private String owner;
     private String repo;
+    private String webhookSecret;
 
     public String getApiUrl() {
         return apiUrl;
@@ -41,5 +42,13 @@ public class GitHubProperties {
 
     public void setRepo(String repo) {
         this.repo = repo;
+    }
+
+    public String getWebhookSecret() {
+        return webhookSecret;
+    }
+
+    public void setWebhookSecret(String webhookSecret) {
+        this.webhookSecret = webhookSecret;
     }
 }

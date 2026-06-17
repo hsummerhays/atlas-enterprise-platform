@@ -28,13 +28,14 @@ public class AgentAuditLogService {
         this.tableName = tableName;
     }
 
-    public void logExecution(String agentName, AgentRequest request, AgentResult result) {
+    public void logExecution(String agentName, AgentRequest request, AgentResult result, ApprovalLevel approvalLevel) {
         String executionId = UUID.randomUUID().toString();
         String timestamp = Instant.now().toString();
 
         Map<String, AttributeValue> item = new HashMap<>();
         item.put("executionId", AttributeValue.fromS(executionId));
         item.put("agentName", AttributeValue.fromS(agentName));
+        item.put("approvalLevel", AttributeValue.fromS(approvalLevel.name()));
         item.put("inputData", AttributeValue.fromS(request.inputData() != null ? request.inputData() : ""));
         item.put("requestedBy", AttributeValue.fromS(request.requestedBy() != null ? request.requestedBy() : "unknown"));
         item.put("success", AttributeValue.fromBool(result.success()));
@@ -46,7 +47,7 @@ public class AgentAuditLogService {
                     .tableName(tableName)
                     .item(item)
                     .build());
-            log.info("Audit log written: executionId={} agentName={}", executionId, agentName);
+            log.info("Audit log written: executionId={} agentName={} approvalLevel={}", executionId, agentName, approvalLevel);
         } catch (Exception e) {
             log.error("Failed to write audit log for agent {}: {}", agentName, e.getMessage());
         }

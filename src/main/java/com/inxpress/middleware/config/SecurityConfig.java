@@ -24,6 +24,7 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/actuator/health", "/actuator/info").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/v1/webhooks/github").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/shipments/rates").hasAnyAuthority("ROLE_SHIPPING_USER", "ROLE_SHIPPING_ADMIN", "SCOPE_shipments:read")
                 .requestMatchers(HttpMethod.POST, "/api/v1/shipments/*/book").hasAuthority("ROLE_SHIPPING_ADMIN")
                 .requestMatchers(HttpMethod.POST, "/api/v1/shipments/cancel/*").hasAuthority("ROLE_SHIPPING_ADMIN")

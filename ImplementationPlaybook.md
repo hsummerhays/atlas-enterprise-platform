@@ -6,12 +6,14 @@
 
 ## 🛠️ Detailed Agent Architectures
 
-### 1. The AIAgent & AgentWorkItem Framework
-We decouple code generation using a work execution contract, routing actions through a coordinator:
+### 1. The AIAgent & AgentRequest Framework
+We decouple agent execution by passing structured request contexts:
 ```java
-public interface AgentWorkItem {
-    AgentResult execute();
-}
+public record AgentRequest(
+    String inputData,
+    Map<String, Object> context,
+    String requestedBy
+) {}
 
 public interface AIAgent {
     AgentResult run(AgentRequest request);

@@ -1,14 +1,22 @@
 package com.inxpress.middleware.controller;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.inxpress.middleware.config.GitHubProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
 
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.util.HexFormat;
 import java.util.Map;
 
 @RestController
@@ -19,21 +27,43 @@ public class GitHubWebhookController {
 
     private final SqsClient sqsClient;
     private final ObjectMapper objectMapper;
+    private final GitHubProperties githubProperties;
 
     @Value("${aws.sqs.agent-tasks-queue-url:}")
     private String queueUrl;
 
-    public GitHubWebhookController(SqsClient sqsClient, ObjectMapper objectMapper) {
+    public GitHubWebhookController(SqsClient sqsClient, ObjectMapper objectMapper, GitHubProperties githubProperties) {
         this.sqsClient = sqsClient;
         this.objectMapper = objectMapper;
+        this.githubProperties = githubProperties;
     }
 
     @PostMapping
     public ResponseEntity<String> handleWebhook(
             @RequestHeader(value = "X-GitHub-Event", defaultValue = "unknown") String eventType,
-            @RequestBody Map<String, Object> payload) {
+            @RequestHeader(value = "X-Hub-Signature-256", required = false) String signatureHeader,
+            @RequestBody byte[] rawBody) {
 
         log.info("Received GitHub webhook event: {}", eventType);
+
+        String webhookSecret = githubProperties.getWebhookSecret();
+        if (webhookSecret != null && !webhookSecret.isBlank()) {
+            if (signatureHeader == null) {
+                log.warn("Rejecting webhook: missing X-Hub-Signature-256 header");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Missing X-Hub-Signature-256 header");
+            }
+            if (!verifySignature(rawBody, signatureHeader, webhookSecret)) {
+                log.warn("Rejecting webhook: invalid signature");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid webhook signature");
+            }
+        }
+
+        Map<String, Object> payload;
+        try {
+            payload = objectMapper.readValue(rawBody, new TypeReference<>() {});
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Invalid JSON payload");
+        }
 
         if (!"issues".equals(eventType)) {
             return ResponseEntity.ok("Event type not handled: " + eventType);
@@ -64,6 +94,22 @@ public class GitHubWebhookController {
         } catch (Exception e) {
             log.error("Failed to enqueue agent task for issue #{}: {}", issueNumber, e.getMessage());
             return ResponseEntity.internalServerError().body("Failed to enqueue task: " + e.getMessage());
+        }
+    }
+
+    private boolean verifySignature(byte[] body, String signatureHeader, String secret) {
+        try {
+            Mac mac = Mac.getInstance("HmacSHA256");
+            mac.init(new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
+            byte[] digest = mac.doFinal(body);
+            String expected = "sha256=" + HexFormat.of().formatHex(digest);
+            return MessageDigest.isEqual(
+                    expected.getBytes(StandardCharsets.UTF_8),
+                    signatureHeader.getBytes(StandardCharsets.UTF_8)
+            );
+        } catch (Exception e) {
+            log.error("Signature verification error: {}", e.getMessage());
+            return false;
         }
     }
 

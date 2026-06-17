@@ -5,8 +5,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.Map;
 
 @Component
@@ -33,21 +31,21 @@ public class CarrierAdapterAgent implements AIAgent {
             return new AgentResult("CarrierAdapterAgent", false, "Failed to create branch: " + branchName, Map.of());
         }
 
-        // 2. Update Carrier.java enum — read from local disk, push modified version to GitHub
+        // 2. Read Carrier.java from GitHub, add USPS, push updated version
         String carrierEnumPath = "src/main/java/com/inxpress/middleware/domain/model/Carrier.java";
         try {
-            String content = Files.readString(Paths.get(carrierEnumPath));
-            if (!content.contains("USPS")) {
-                String updatedContent = content.replace("DHL", "DHL,\n    USPS");
+            GitHubIntegrationService.FileEntry carrierFile = githubService.getFileEntry(carrierEnumPath);
+            if (!carrierFile.content().contains("USPS")) {
+                String updatedContent = carrierFile.content().replace("DHL", "DHL,\n    USPS");
                 boolean pushed = githubService.pushFileToGitHub(
-                        branchName, carrierEnumPath, updatedContent, "AI: register USPS enum value in Carrier.java");
+                        branchName, carrierEnumPath, updatedContent, "AI: register USPS enum value in Carrier.java", carrierFile.sha());
                 if (!pushed) {
                     return new AgentResult("CarrierAdapterAgent", false, "Failed to push updated Carrier enum", Map.of());
                 }
                 log.info("Pushed updated Carrier enum with USPS to branch {}", branchName);
             }
         } catch (Exception e) {
-            log.error("Failed to read/update Carrier enum", e);
+            log.error("Failed to read/update Carrier enum from GitHub", e);
             return new AgentResult("CarrierAdapterAgent", false, "Failed to update Carrier enum: " + e.getMessage(), Map.of());
         }
 

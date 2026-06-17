@@ -42,7 +42,7 @@ public class SqsAgentTaskConsumer {
         ReceiveMessageRequest receiveRequest = ReceiveMessageRequest.builder()
                 .queueUrl(queueUrl)
                 .maxNumberOfMessages(10)
-                .waitTimeSeconds(1)
+                .waitTimeSeconds(20)
                 .build();
 
         List<Message> messages;
