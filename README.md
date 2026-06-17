@@ -112,6 +112,36 @@ Orchestrated using **AWS MWAA (Managed Workflows for Apache Airflow)**, the syst
 
 ---
 
+## 🐙 GitHub Integration & Autonomous DevOps Loop
+
+The middleware supports a fully automated coding and review loop by connecting to the **GitHub REST API** to execute tasks from ticket to deployment:
+
+```
+[ GitHub Issue / Webhook ]
+           │
+           ▼
+     [ AI Agent ]
+           │ (Fetch specifications / CarrierAdapterAgent)
+           ▼
+   [ Branch Creation ]  ◄── (GitHubIntegrationService: createBranch)
+           │
+           ▼
+   [ Code Generation ]  ◄── (RefactoringAgent / TestGenerationAgent)
+           │
+           ▼
+   [ Automated Tests ]  ◄── (JaCoCo Coverage & Checkstyle)
+           │
+           ▼
+   [ Pull Request ]     ◄── (GitHubIntegrationService: createPullRequest)
+```
+
+### Supported integrations:
+* **GitHub API Client**: Autonomic components invoke the [GitHubIntegrationService](file:///c:/HughApps/InXpressErpMiddleware/src/main/java/com/inxpress/middleware/service/GitHubIntegrationService.java) to dynamically query issues, build features on isolated branches, and push code suggestions.
+* **Claude Code / GitHub MCP**: Future-proof integration designed to allow Claude Code agent instances to interact directly with EKS/RDS infrastructures using Model Context Protocol (MCP) tooling.
+* **GitHub Actions**: Hooks agent-generated PR branches into the CI pipeline, automatically running JUnit suites and security analyzers on commit events.
+
+---
+
 ## ⚖️ AI Governance & Security Controls
 
 To ensure reliability, compliance, and prevent autonomous action drift, the AI Agent layer operates under strict governance guardrails:
