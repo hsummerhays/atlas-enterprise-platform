@@ -31,9 +31,12 @@ aws:
   sns:
     topic-arn: ${AWS_SNS_TOPIC_ARN:arn:aws:sns:us-east-1:123456789012:shipment-events}
     endpoint-override: ${AWS_SNS_ENDPOINT_OVERRIDE:}
+    agent-review-topic-arn: ${AWS_SNS_AGENT_REVIEW_TOPIC_ARN:}
   sqs:
     endpoint-override: ${AWS_SQS_ENDPOINT_OVERRIDE:}
     agent-tasks-queue-url: ${AWS_SQS_AGENT_TASKS_QUEUE_URL:http://localhost:4566/000000000000/agent-tasks}
+    agent-tasks-dlq-url: ${AWS_SQS_AGENT_TASKS_DLQ_URL:}
+    agent-tasks-max-receive-count: ${AWS_SQS_MAX_RECEIVE_COUNT:3}
   dynamodb:
     endpoint-override: ${AWS_DYNAMODB_ENDPOINT_OVERRIDE:}
     audit-table-name: ${AWS_DYNAMODB_AUDIT_TABLE:agent-execution-audit}

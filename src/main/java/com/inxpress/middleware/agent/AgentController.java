@@ -1,5 +1,7 @@
 package com.inxpress.middleware.agent;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -31,7 +33,7 @@ public class AgentController {
     @PostMapping("/{name}/execute")
     public ResponseEntity<AgentResult> executeAgent(
             @PathVariable String name,
-            @RequestBody AgentWorkItemDto workItemDto) {
+            @Valid @RequestBody AgentWorkItemDto workItemDto) {
 
         AgentRequest request = new AgentRequest(
                 workItemDto.inputData(),
@@ -44,7 +46,7 @@ public class AgentController {
     }
 
     public record AgentWorkItemDto(
-        String inputData,
+        @NotBlank String inputData,
         Map<String, Object> context
     ) {}
 }

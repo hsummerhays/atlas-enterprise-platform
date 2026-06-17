@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.Map;
 
 @Component
@@ -63,7 +64,8 @@ public class DocumentationAgent implements AIAgent {
                 "AI Documentation: OpenAPI and Architecture Diagrams Update",
                 branchName,
                 "main",
-                prBody
+                prBody,
+                List.of(getRequiredApprovalLevel().name().toLowerCase())
         );
 
         String outputSummary = String.format(

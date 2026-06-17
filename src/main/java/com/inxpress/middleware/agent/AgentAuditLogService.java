@@ -11,7 +11,6 @@ import software.amazon.awssdk.services.dynamodb.model.PutItemRequest;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 
 @Service
 public class AgentAuditLogService {
@@ -28,8 +27,7 @@ public class AgentAuditLogService {
         this.tableName = tableName;
     }
 
-    public void logExecution(String agentName, AgentRequest request, AgentResult result, ApprovalLevel approvalLevel) {
-        String executionId = UUID.randomUUID().toString();
+    public void logExecution(String executionId, String agentName, AgentRequest request, AgentResult result, ApprovalLevel approvalLevel) {
         String timestamp = Instant.now().toString();
 
         Map<String, AttributeValue> item = new HashMap<>();

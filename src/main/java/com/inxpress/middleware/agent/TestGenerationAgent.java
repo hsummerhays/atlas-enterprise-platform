@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.Map;
 
 @Component
@@ -63,7 +64,8 @@ public class TestGenerationAgent implements AIAgent {
                 "AI Test Generation: ShipmentService Coverage Update",
                 branchName,
                 "main",
-                prBody
+                prBody,
+                List.of(getRequiredApprovalLevel().name().toLowerCase())
         );
 
         String outputSummary = String.format("Successfully generated tests!\nPR URL: %s", prUrl);

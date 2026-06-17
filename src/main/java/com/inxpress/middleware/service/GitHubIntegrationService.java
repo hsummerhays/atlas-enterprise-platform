@@ -11,6 +11,7 @@ import org.springframework.web.client.RestClient;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -173,6 +174,10 @@ public class GitHubIntegrationService {
     }
 
     public String createPullRequest(String title, String headBranch, String baseBranch, String body) {
+        return createPullRequest(title, headBranch, baseBranch, body, List.of());
+    }
+
+    public String createPullRequest(String title, String headBranch, String baseBranch, String body, List<String> labels) {
         log.info("Opening GitHub PR from {} to {} with title: {}", headBranch, baseBranch, title);
 
         if (properties.getToken() == null || properties.getToken().isBlank()) {
@@ -198,15 +203,39 @@ public class GitHubIntegrationService {
                     .retrieve()
                     .body(Map.class);
 
-            if (response != null && response.containsKey("html_url")) {
-                String prUrl = (String) response.get("html_url");
-                log.info("Successfully created Pull Request: {}", prUrl);
-                return prUrl;
+            if (response == null || !response.containsKey("html_url")) {
+                throw new RuntimeException("PR response missing html_url");
             }
-            throw new RuntimeException("PR response missing html_url");
+
+            String prUrl = (String) response.get("html_url");
+            log.info("Successfully created Pull Request: {}", prUrl);
+
+            if (!labels.isEmpty() && response.containsKey("number")) {
+                int prNumber = ((Number) response.get("number")).intValue();
+                addLabelsToPullRequest(prNumber, labels);
+            }
+
+            return prUrl;
         } catch (Exception e) {
             log.error("Failed to create GitHub PR: {}", e.getMessage());
             throw new RuntimeException("GitHub PR creation failed: " + e.getMessage(), e);
+        }
+    }
+
+    private void addLabelsToPullRequest(int prNumber, List<String> labels) {
+        try {
+            String uri = String.format("/repos/%s/%s/issues/%d/labels",
+                    properties.getOwner(), properties.getRepo(), prNumber);
+            restClient.post()
+                    .uri(uri)
+                    .header("Authorization", "token " + properties.getToken())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(Map.of("labels", labels))
+                    .retrieve()
+                    .toBodilessEntity();
+            log.info("Applied labels {} to PR #{}", labels, prNumber);
+        } catch (Exception e) {
+            log.warn("Failed to apply labels to PR #{}: {}", prNumber, e.getMessage());
         }
     }
 }

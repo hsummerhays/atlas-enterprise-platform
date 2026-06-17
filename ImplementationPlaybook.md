@@ -28,13 +28,11 @@ public interface AIAgent {
 
 ---
 
-## ⚡ Asynchronous Webhook & SQS Ingestion Details
+### 1. Webhook Verification & Resolution Logic
+We intercept GitHub Issues webhooks, verify payload authenticity using HMAC-SHA256 signatures via the `X-Hub-Signature-256` header, and dynamically map keyword heuristics (`test`, `doc`, `carrier`, `security`) to resolve the target agent queue payload.
 
-### 1. Webhook Resolution Logic
-We intercept GitHub Issues webhooks and dynamically map keyword heuristics (`test`, `doc`, `carrier`, `security`) to resolve the target agent queue payload.
-
-### 2. SQS Consumer & Poller
-Polling loops fetch JSON payloads from `agent-tasks-queue` on a 5-second interval:
+### 2. SQS Consumer, Long-Polling & DLQ Routing
+Polling loops fetch JSON payloads from `agent-tasks-queue` utilizing SQS Long-Polling (`waitTimeSeconds(20)`) to optimize request costs. If a message fails processing more than `maxReceiveCount` (default: 3) times, it is categorized as a poison message and routed to the Dead Letter Queue (DLQ):
 ```java
 @Scheduled(fixedDelay = 5000)
 public void pollAgentTaskQueue() { ... }
@@ -44,7 +42,11 @@ public void pollAgentTaskQueue() { ... }
 We invoke Claude OkHttp Java SDK (`com.anthropic:anthropic-java`) and configure `ThinkingConfigAdaptive` to perform raw file edits, prompts processing, and mapping generation.
 
 ### 4. DynamoDB Execution Auditing
-Logs execution metrics (`executionId`, `agentName`, `inputData`, `requestedBy`, `success`, `output`, `timestamp`) into an immutable `agent-execution-audit` table on every execution.
+Logs execution metrics (`executionId`, `agentName`, `approvalLevel`, `inputData`, `requestedBy`, `success`, `output`, `timestamp`) into an immutable `agent-execution-audit` table on every execution.
+
+### 5. Automated Gating, Labels, & SNS Notifications
+* **GitHub PR Labeling**: Pull Requests opened by agents are automatically labeled with their associated `ApprovalLevel` (e.g. `documentation`, `tests`, `feature`, `security`, `architecture`) using GitHub's issue labeling API.
+* **SNS Gated Alerts**: When a PR is opened requiring human approval (e.g. `FEATURE`, `SECURITY`, `ARCHITECTURE`), a JSON alert is published to the `agent-review-topic-arn` SNS topic to notify administrators or trigger external approvals.
 
 ---
 
@@ -108,5 +110,50 @@ Avoid excessive scope creep by keeping these items deferred:
 * **Chronology**:
   - **10:00 PM**: AI agent automatically picks up the issue, generates the cache code, creates JUnit tests, and opens PR #57.
   - **08:00 AM**: Senior engineer reviews the PR, sees green CI builds/tests, and merges it with a single click.
-* **Value Proposition**: Demonstrates a mature, safe developer-extension ecosystem rather than an unsafe, unmanaged AI coding tool.
+* **Value Proposition**: Demonstrates a mature, safe developer-extension ecosystem rather than an unsafe, unmanaged AI coding tool. The goal isn't autonomous coding—it's autonomous preparation. AI does the repetitive work while engineers focus on judgment and business outcomes.
+
+---
+
+## 💡 Future Architectural Evolutions
+
+To scale the AI Agent layer into a production-grade enterprise system, we anticipate the following architectural evolutions:
+
+### 1. Strongly Typed Context (`AgentContext`)
+Transition from a generic `Map<String, Object> context` to a strongly typed record to guarantee contract safety:
+```java
+public record AgentContext(
+    String repository,
+    String branch,
+    String issueNumber,
+    String carrier,
+    List<String> changedFiles
+) {}
+```
+
+### 2. End-to-End Correlation IDs
+Introduce correlation/execution tracking across boundaries (webhook trigger ➔ SQS message ➔ LLM generation ➔ PR commit):
+```java
+public record AgentRequest(
+    String inputData,
+    AgentContext context,
+    String requestedBy,
+    UUID correlationId,
+    AgentPriority priority
+) {}
+```
+
+### 3. Agent Confidence Scoring & Dynamic Thresholds
+Enable agents to self-report confidence levels, driving automated routing strategies:
+```java
+public record AgentResult(
+    String agentName,
+    boolean success,
+    double confidence, // Range: 0.0 to 1.0
+    String output,
+    Map<String, Object> metadata
+) {}
+```
+* **High Confidence (e.g. >0.85)**: Auto-open Pull Request.
+* **Low Confidence (e.g. <0.85)**: Create Draft PR or request review and request interactive developer feedback via Slack/Teams webhook.
+
 

@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.Map;
 
 @Component
@@ -88,7 +89,8 @@ public class CarrierAdapterAgent implements AIAgent {
                 "AI Integration: USPS Carrier Adapter Scaffolding",
                 branchName,
                 "main",
-                prBody
+                prBody,
+                List.of(getRequiredApprovalLevel().name().toLowerCase())
         );
 
         String outputSummary = String.format(
