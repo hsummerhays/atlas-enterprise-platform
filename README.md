@@ -142,6 +142,20 @@ The middleware supports a fully automated coding and review loop by connecting t
 
 ---
 
+## 🗺️ Roadmap: Phase 2 & Phase 3
+
+### Phase 2: GitHub + AWS Hybrid Loop
+Secures high-speed coordination between the GitHub workspace and runtime AWS environments:
+* **GitHub Operations**: Manages source control, code generation, Pull Request reviews, and CI test orchestration.
+* **AWS Deployments**: Executes EKS container runtime, SNS/SQS event publishing, RDS data storage, and CloudWatch observability.
+* **Flow**: `Claude/AIAgent` ➔ `GitHub Branch` ➔ `PR Created` ➔ `GitHub Actions` ➔ `Docker Build` ➔ `ECR Push` ➔ `EKS Deploy`.
+
+### Phase 3: Asynchronous AWS Automation (Zero-Touch Ops)
+* **Queue-Driven Code Loop**: Pushes new issues or tasks onto an **AWS SQS** queue, automatically waking up an AI agent worker to generate code, run coverage checks, and publish GitHub PRs asynchronously.
+* **Scheduled Self-Healing**: Uses **AWS EventBridge** schedules to run nightly code reviews at 10 PM. The agent automatically patches bugs and updates dependencies, leaving Pull Requests waiting for human approval in the morning.
+
+---
+
 ## ⚖️ AI Governance & Security Controls
 
 To ensure reliability, compliance, and prevent autonomous action drift, the AI Agent layer operates under strict governance guardrails:
