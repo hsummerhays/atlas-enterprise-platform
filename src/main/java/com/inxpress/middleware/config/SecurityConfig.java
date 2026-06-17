@@ -28,6 +28,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/v1/shipments/*/book").hasAuthority("ROLE_SHIPPING_ADMIN")
                 .requestMatchers(HttpMethod.POST, "/api/v1/shipments/cancel/*").hasAuthority("ROLE_SHIPPING_ADMIN")
                 .requestMatchers("/api/v1/shipments/**").hasAnyAuthority("ROLE_SHIPPING_USER", "ROLE_SHIPPING_ADMIN")
+                .requestMatchers("/api/v1/agents/**").hasAuthority("ROLE_SHIPPING_ADMIN")
                 .anyRequest().authenticated()
             )
             .oauth2ResourceServer(oauth2 -> oauth2
