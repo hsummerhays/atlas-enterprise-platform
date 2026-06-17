@@ -31,16 +31,19 @@ jobs:
       run: ./gradlew build --no-daemon
 
     - name: Configure AWS Credentials
+      if: ${{ secrets.AWS_ROLE_ARN != '' }}
       uses: aws-actions/configure-aws-credentials@v4
       with:
-        role-to-assume: arn:aws:iam::123456789012:role/GithubActionsEKSRole
+        role-to-assume: ${{ secrets.AWS_ROLE_ARN || 'arn:aws:iam::123456789012:role/GithubActionsEKSRole' }}
         aws-region: us-east-1
 
     - name: Login to Amazon ECR
+      if: ${{ secrets.AWS_ROLE_ARN != '' }}
       id: login-ecr
       uses: aws-actions/amazon-ecr-login@v2
 
     - name: Build, Tag, and Push Image to Amazon ECR
+      if: ${{ secrets.AWS_ROLE_ARN != '' }}
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         ECR_REPOSITORY: inxpress-middleware
@@ -51,10 +54,13 @@ jobs:
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
     - name: Set up Kubeconfig for EKS
+      if: ${{ secrets.AWS_ROLE_ARN != '' }}
       run: |
         aws eks update-kubeconfig --region us-east-1 --name inxpress-eks-cluster
 
     - name: Deploy to Kubernetes (EKS)
+      if: ${{ secrets.AWS_ROLE_ARN != '' }}
       run: |
         kubectl apply -f k8s/deployment.yaml
         kubectl rollout status deployment/inxpress-middleware -n shipping
+
