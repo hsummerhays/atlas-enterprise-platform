@@ -70,23 +70,34 @@ The middleware embeds an autonomic AI Agent Layer designed to automate developer
         ┌───────────────────────┼───────────────────────┐
         ▼                       ▼                       ▼
 [DocumentationAgent]    [TestGenerationAgent]   [RefactoringAgent]
-        ▼                       ▼                       ▼
-[PrGenerationAgent]     [CarrierResearchAgent]  [InvoiceReconciliationAgent]
+        ▼                                               ▼
+[CarrierAdapterAgent]                           [SecurityReviewAgent]
 ```
 
 ### Agent Directory:
 * **Documentation Agent**: Auto-generates, updates, and structures system architectural specifications and API markdown documentation.
 * **Test Generation Agent**: Code inspector that writes JUnit integration and unit tests for carrier client interfaces.
 * **Refactoring Agent**: Code scanner suggesting performance improvements (e.g., Spring Boot 4 virtual thread optimization rules).
-* **PR Generation Agent**: Auto-crafts pull request summaries, changelogs, and check-lists by parsing local git diffs.
-* **Carrier Research Agent**: Automatically researches carrier REST specification updates and formats updates into canonical models.
-* **Invoice Reconciliation Agent**: Performs automated billing audit reconciliations matching quoted DB rates against carrier invoices.
+* **Carrier Adapter Agent**: Automatically researches carrier REST specification updates and formats updates into canonical models.
+* **Security Review Agent**: Performs automated security reviews, virtual thread scopes verification, and dependency auditing.
 
 ### REST Endpoints:
 | Method | Endpoint | Description | Required Role |
 |---|---|---|---|
 | `GET` | `/api/v1/agents` | Lists all registered AI Agents | `ROLE_SHIPPING_ADMIN` |
 | `POST` | `/api/v1/agents/{name}/execute` | Triggers a specific AI agent execution | `ROLE_SHIPPING_ADMIN` |
+
+---
+
+## 🌙 Nightly AI Workflow (10 PM Job)
+
+Orchestrated using **AWS MWAA (Managed Workflows for Apache Airflow)**, the system triggers a nightly development and maintenance loop defined in [nightly_ai_workflow.py](file:///c:/HughApps/InXpressErpMiddleware/dags/nightly_ai_workflow.py):
+
+1. **Review Carrier Adapters (`CarrierAdapterAgent`)**: Automatically scans and researches API specification updates from FedEx/UPS/DHL sandbox environments.
+2. **Generate Missing Tests (`TestGenerationAgent`)**: Scans code diffs, identifies untested classes, and writes JUnit validation files.
+3. **Update Documentation (`DocumentationAgent`)**: Updates the markdown documentation and code specs.
+4. **Security & Refactoring Review (`SecurityReviewAgent`)**: Runs static code analysis, validates virtual thread scopes, and checks dependency vulnerabilities.
+5. **Open Pull Requests**: Automatically stages modified files, opens PRs for code review, and alerts developers via Ops emails.
 
 ---
 
