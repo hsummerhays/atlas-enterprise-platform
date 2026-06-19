@@ -210,8 +210,8 @@ To ensure reliability, compliance, and prevent autonomous action drift, the AI A
 * **SNS Notification Gateway**: Gated approval requests publish message payloads to AWS SNS to trigger human review loops.
 * **Mandatory Security Scanning**: Every agent-triggered build initiates static application security testing (SAST) and software composition analysis (SCA) to detect code vulnerabilities.
 * **Test Coverage Enforcement**: Code generated or modified by agents must meet or exceed a **85% test coverage threshold** verified automatically via JaCoCo in the build pipeline.
-* **Secret Redaction**: API keys, credentials, and IAM tokens are injected at runtime via Kubernetes Secrets/AWS Secrets Manager and are strictly blacklisted from the agent context.
 * **Tamper-Proof Audit Logging**: Every agent execution, input payload, and output recommendation is serialized and stored in an immutable **Amazon DynamoDB** table for audit compliance.
+* **Load Shedding & Rate Limiting**: Restricts concurrent agent executions via an thread-safe counter threshold. Synchronous HTTP API client jobs are rejected with `HTTP 429 Too Many Requests`, and background SQS queue polling is deferred until the workload falls back below the threshold.
 
 ### 🛡️ AI Agent Permission Matrix
 To maintain corporate security compliance, agent execution scopes are strictly restricted:

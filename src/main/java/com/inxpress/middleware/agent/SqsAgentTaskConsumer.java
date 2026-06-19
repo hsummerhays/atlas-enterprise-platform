@@ -47,6 +47,12 @@ public class SqsAgentTaskConsumer {
             return;
         }
 
+        if (coordinator.getActiveAgentCount() >= coordinator.getThreshold()) {
+            log.warn("Active agent count ({}) meets or exceeds threshold ({}). Delaying SQS polling.",
+                    coordinator.getActiveAgentCount(), coordinator.getThreshold());
+            return;
+        }
+
         ReceiveMessageRequest receiveRequest = ReceiveMessageRequest.builder()
                 .queueUrl(queueUrl)
                 .maxNumberOfMessages(10)

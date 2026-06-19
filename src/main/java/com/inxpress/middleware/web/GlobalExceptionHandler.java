@@ -1,6 +1,7 @@
 package com.inxpress.middleware.web;
 
 import com.inxpress.middleware.domain.exception.CarrierAdapterException;
+import com.inxpress.middleware.domain.exception.LoadSheddingException;
 import com.inxpress.middleware.domain.exception.ShipmentNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,6 +15,11 @@ import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(LoadSheddingException.class)
+    public ResponseEntity<Map<String, Object>> handleLoadShedding(LoadSheddingException ex) {
+        return buildResponse(ex.getMessage(), HttpStatus.TOO_MANY_REQUESTS);
+    }
 
     @ExceptionHandler(ShipmentNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleNotFound(ShipmentNotFoundException ex) {

@@ -48,6 +48,12 @@ Logs execution metrics (`executionId`, `agentName`, `approvalLevel`, `inputData`
 * **GitHub PR Labeling**: Pull Requests opened by agents are automatically labeled with their associated `ApprovalLevel` (e.g. `documentation`, `tests`, `feature`, `security`, `architecture`) using GitHub's issue labeling API.
 * **SNS Gated Alerts**: When a PR is opened requiring human approval (e.g. `FEATURE`, `SECURITY`, `ARCHITECTURE`), a JSON alert is published to the `agent-review-topic-arn` SNS topic to notify administrators or trigger external approvals.
 
+### 6. Load Shedding & Backpressure
+To protect the system from resource exhaustion (e.g. Claude API rate limits, database lock contention, memory usage), we apply load shedding based on the active agent count:
+* **Active Agent Tracking**: An `AtomicInteger` in `AgentCoordinator` tracks in-flight agent executions.
+* **HTTP/API Rate Limiting (429)**: Executing agents via REST endpoints when the count exceeds the threshold throws a `LoadSheddingException`, which translates to an `HTTP 429 Too Many Requests` response.
+* **SQS Polling Delay**: The SQS consumer checks the active count before polling. If it meets or exceeds the threshold, polling is skipped for that cycle, allowing messages to stay in SQS and avoiding receive count increments/DLQ routing.
+
 ---
 
 ## 🎯 Post-Hire Implementation Roadmap
