@@ -8,6 +8,8 @@ import com.inxpress.middleware.domain.model.Carrier;
 import com.inxpress.middleware.domain.model.Shipment;
 import com.inxpress.middleware.domain.model.ShipmentStatus;
 import com.inxpress.middleware.domain.repository.ShipmentRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,6 +19,8 @@ import java.util.Map;
 
 @Service
 public class ShipmentService {
+
+    private static final Logger log = LoggerFactory.getLogger(ShipmentService.class);
 
     private final ShipmentRepository shipmentRepository;
     private final CarrierRegistry carrierRegistry;
@@ -32,6 +36,9 @@ public class ShipmentService {
 
     @Transactional
     public Shipment createShipment(Shipment shipment) {
+        // Client-supplied id/status must never control persistence: a non-null id would make
+        // Spring Data treat this as an update and could overwrite an unrelated existing row.
+        shipment.setId(null);
         shipment.setStatus(ShipmentStatus.CREATED);
         Shipment saved = shipmentRepository.save(shipment);
         eventPublisher.publishShipmentEvent("SHIPMENT_CREATED", saved);
@@ -61,8 +68,7 @@ public class ShipmentService {
                     BigDecimal rate = adapter.quoteRate(shipment);
                     quotes.put(carrier, rate);
                 } catch (Exception e) {
-                    // Log error and skip carrier quote
-                    quotes.put(carrier, BigDecimal.ZERO);
+                    log.warn("Failed to get rate quote from carrier {}: {}", carrier, e.getMessage());
                 }
             });
         }

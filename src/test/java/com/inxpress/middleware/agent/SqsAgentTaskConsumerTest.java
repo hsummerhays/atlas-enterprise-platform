@@ -45,6 +45,9 @@ class SqsAgentTaskConsumerTest {
         ReflectionTestUtils.setField(consumer, "queueUrl", QUEUE_URL);
         ReflectionTestUtils.setField(consumer, "dlqUrl", DLQ_URL);
         ReflectionTestUtils.setField(consumer, "maxReceiveCount", 3);
+        // Coordinator mock defaults active count and threshold to 0, which would make the
+        // load-shedding check (active >= threshold) always trip and skip polling entirely.
+        when(coordinator.getThreshold()).thenReturn(5);
     }
 
     @Test
@@ -88,7 +91,7 @@ class SqsAgentTaskConsumerTest {
 
         consumer.pollAgentTaskQueue();
 
-        verifyNoInteractions(coordinator);
+        verify(coordinator, never()).runAgent(any(), any());
 
         ArgumentCaptor<SendMessageRequest> sendCaptor = ArgumentCaptor.forClass(SendMessageRequest.class);
         verify(sqsClient).sendMessage(sendCaptor.capture());
@@ -106,7 +109,7 @@ class SqsAgentTaskConsumerTest {
 
         consumer.pollAgentTaskQueue();
 
-        verifyNoInteractions(coordinator);
+        verify(coordinator, never()).runAgent(any(), any());
         verify(sqsClient, never()).sendMessage(any(SendMessageRequest.class));
         verify(sqsClient).deleteMessage(argThat(
                 (DeleteMessageRequest req) -> "receipt-4".equals(req.receiptHandle())));

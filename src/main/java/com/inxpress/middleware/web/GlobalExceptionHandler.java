@@ -3,6 +3,8 @@ package com.inxpress.middleware.web;
 import com.inxpress.middleware.domain.exception.CarrierAdapterException;
 import com.inxpress.middleware.domain.exception.LoadSheddingException;
 import com.inxpress.middleware.domain.exception.ShipmentNotFoundException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -15,6 +17,8 @@ import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(LoadSheddingException.class)
     public ResponseEntity<Map<String, Object>> handleLoadShedding(LoadSheddingException ex) {
@@ -29,6 +33,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(CarrierAdapterException.class)
     public ResponseEntity<Map<String, Object>> handleCarrierException(CarrierAdapterException ex) {
         return buildResponse(ex.getMessage(), HttpStatus.BAD_GATEWAY);
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String, Object>> handleIllegalArgument(IllegalArgumentException ex) {
+        return buildResponse(ex.getMessage(), HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -49,7 +58,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGeneric(Exception ex) {
-        return buildResponse(ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        log.error("Unhandled exception while processing request", ex);
+        return buildResponse("An unexpected error occurred", HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     private ResponseEntity<Map<String, Object>> buildResponse(String message, HttpStatus status) {

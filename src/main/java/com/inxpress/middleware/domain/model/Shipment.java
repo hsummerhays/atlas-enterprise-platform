@@ -1,6 +1,10 @@
 package com.inxpress.middleware.domain.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -17,13 +21,17 @@ public class Shipment {
     @Column(name = "tracking_number", unique = true)
     private String trackingNumber;
 
+    @NotNull(message = "Carrier is required")
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Carrier carrier;
 
+    @NotBlank(message = "Service type is required")
     @Column(name = "service_type", nullable = false)
     private String serviceType;
 
+    @NotNull(message = "Sender address is required")
+    @Valid
     @Embedded
     @AttributeOverrides({
         @AttributeOverride(name = "contactName", column = @Column(name = "sender_contact_name")),
@@ -38,6 +46,8 @@ public class Shipment {
     })
     private Address senderAddress;
 
+    @NotNull(message = "Recipient address is required")
+    @Valid
     @Embedded
     @AttributeOverrides({
         @AttributeOverride(name = "contactName", column = @Column(name = "recipient_contact_name")),
@@ -52,6 +62,7 @@ public class Shipment {
     })
     private Address recipientAddress;
 
+    @NotEmpty(message = "At least one package is required")
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "shipment_packages", joinColumns = @JoinColumn(name = "shipment_id"))
     private List<PackageDetail> packages = new ArrayList<>();

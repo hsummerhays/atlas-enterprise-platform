@@ -1,92 +1,130 @@
 package com.inxpress.middleware.agent;
 
+import com.inxpress.middleware.service.ClaudeService;
 import com.inxpress.middleware.service.GitHubIntegrationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Component
 public class CarrierAdapterAgent implements AIAgent {
 
     private static final Logger log = LoggerFactory.getLogger(CarrierAdapterAgent.class);
 
-    private final GitHubIntegrationService githubService;
+    private static final String CARRIER_ENUM_PATH = "src/main/java/com/inxpress/middleware/domain/model/Carrier.java";
 
-    public CarrierAdapterAgent(GitHubIntegrationService githubService) {
+    private static final Pattern CARRIER_LINE = Pattern.compile("^CARRIER:\\s*([A-Z0-9_]+)", Pattern.MULTILINE);
+    private static final Pattern FILE_BLOCK = Pattern.compile(
+            "===FILE:\\s*(.+?)\\s*===\\s*\\n(.*?)(?=\\n===FILE:|\\z)", Pattern.DOTALL);
+
+    private static final String SYSTEM_PROMPT = """
+            You are a senior Java/Spring Boot engineer extending a shipping middleware that integrates
+            carriers through a CarrierAdapter pattern.
+
+            Existing contract (do not change):
+              package com.inxpress.middleware.adapter;
+              public interface CarrierAdapter {
+                  Carrier getCarrier();
+                  Shipment bookShipment(Shipment shipment);
+                  BigDecimal quoteRate(Shipment shipment);
+                  ShipmentStatus trackShipment(String trackingNumber);
+                  boolean cancelShipment(String trackingNumber);
+              }
+            Carrier is an enum at com.inxpress.middleware.domain.model.Carrier.
+            Shipment exposes getSenderAddress()/getRecipientAddress() (Address records with contactName,
+            companyName, street1, street2, city, stateOrProvince, postalCode, countryCode, phone) and
+            getPackages() (List<PackageDetail> with weightInKg/lengthCm/widthCm/heightCm).
+
+            Given the task below, identify the target carrier as a short UPPERCASE identifier (e.g. UPS, USPS)
+            and generate exactly four files for it, following the existing adapter package convention
+            com.inxpress.middleware.adapter.<carrier-lowercase>:
+              1. <Carrier>Properties.java - @ConfigurationProperties holder (baseUrl, clientId, clientSecret, accountNumber)
+              2. <Carrier>TokenService.java - OAuth2 client-credentials token caching service
+              3. <Carrier>Adapter.java - implements CarrierAdapter, falls back to a mock booking when credentials are unset
+              4. <Carrier>AdapterTest.java - JUnit 5 @SpringBootTest smoke test with @ActiveProfiles("test")
+
+            Respond with ONLY the following format, no extra commentary or markdown fences:
+            CARRIER: <UPPERCASE_CARRIER_NAME>
+            ===FILE: <path/from/repo/root.java>===
+            <full file content>
+            ===FILE: <path/from/repo/root.java>===
+            <full file content>
+            (repeat for all four files, using real relative paths under src/main/java or src/test/java)
+            """;
+
+    private final GitHubIntegrationService githubService;
+    private final ClaudeService claudeService;
+
+    public CarrierAdapterAgent(GitHubIntegrationService githubService, ClaudeService claudeService) {
         this.githubService = githubService;
+        this.claudeService = claudeService;
     }
 
     @Override
     public AgentResult run(AgentRequest request) {
-        log.info("CarrierAdapterAgent executing USPS Carrier Adapter scaffolding...");
+        log.info("CarrierAdapterAgent generating carrier adapter scaffolding via Claude...");
 
-        String branchName = "feature/agent-usps-adapter-scaffold";
+        String taskDescription = request.inputData() != null && !request.inputData().isBlank()
+                ? request.inputData()
+                : "Scaffold a new USPS carrier adapter";
 
-        // 1. Get real main branch SHA and create feature branch
+        String generated = claudeService.analyze(SYSTEM_PROMPT, taskDescription);
+
+        Matcher carrierMatcher = CARRIER_LINE.matcher(generated);
+        if (!carrierMatcher.find()) {
+            return failure("Claude response did not include a CARRIER identifier");
+        }
+        String carrierName = carrierMatcher.group(1).toUpperCase();
+
+        Map<String, String> files = new LinkedHashMap<>();
+        Matcher fileMatcher = FILE_BLOCK.matcher(generated);
+        while (fileMatcher.find()) {
+            files.put(fileMatcher.group(1).trim(), fileMatcher.group(2).strip() + "\n");
+        }
+        if (files.isEmpty()) {
+            return failure("Claude response did not include any generated files");
+        }
+
+        String branchName = "feature/agent-" + carrierName.toLowerCase() + "-adapter";
         String mainSha = githubService.getMainBranchSha();
         boolean branchCreated = githubService.createBranch(branchName, mainSha);
         if (!branchCreated) {
-            return new AgentResult("CarrierAdapterAgent", false, "Failed to create branch: " + branchName, Map.of());
+            return failure("Failed to create branch: " + branchName);
         }
 
-        // 2. Read Carrier.java from GitHub, add USPS, push updated version
-        String carrierEnumPath = "src/main/java/com/inxpress/middleware/domain/model/Carrier.java";
-        try {
-            GitHubIntegrationService.FileEntry carrierFile = githubService.getFileEntry(carrierEnumPath);
-            if (!carrierFile.content().contains("USPS")) {
-                String updatedContent = carrierFile.content().replace("DHL", "DHL,\n    USPS");
-                boolean pushed = githubService.pushFileToGitHub(
-                        branchName, carrierEnumPath, updatedContent, "AI: register USPS enum value in Carrier.java", carrierFile.sha());
-                if (!pushed) {
-                    return new AgentResult("CarrierAdapterAgent", false, "Failed to push updated Carrier enum", Map.of());
-                }
-                log.info("Pushed updated Carrier enum with USPS to branch {}", branchName);
+        if (!ensureCarrierRegistered(branchName, carrierName)) {
+            return failure("Failed to register " + carrierName + " in Carrier.java");
+        }
+
+        for (Map.Entry<String, String> file : files.entrySet()) {
+            boolean pushed = githubService.pushFileToGitHub(
+                    branchName, file.getKey(), file.getValue(), "AI: scaffold " + file.getKey());
+            if (!pushed) {
+                return failure("Failed to push generated file: " + file.getKey());
             }
-        } catch (Exception e) {
-            log.error("Failed to read/update Carrier enum from GitHub", e);
-            return new AgentResult("CarrierAdapterAgent", false, "Failed to update Carrier enum: " + e.getMessage(), Map.of());
         }
 
-        // 3. Push USPS adapter source files to branch
-        String adapterBase = "src/main/java/com/inxpress/middleware/adapter/usps";
-        String testBase = "src/test/java/com/inxpress/middleware/adapter/usps";
+        String fileList = files.keySet().stream().map(p -> "- `" + p + "`").collect(Collectors.joining("\n"));
+        String prBody = String.format("""
+                ## AI-Generated %s Carrier Adapter
+                This Pull Request was generated by **CarrierAdapterAgent** from the request:
+                > %s
 
-        if (!githubService.pushFileToGitHub(branchName, adapterBase + "/UspsProperties.java",
-                getUspsPropertiesTemplate(), "AI: scaffold UspsProperties.java")) {
-            return new AgentResult("CarrierAdapterAgent", false, "Failed to push UspsProperties", Map.of());
-        }
-        if (!githubService.pushFileToGitHub(branchName, adapterBase + "/UspsTokenService.java",
-                getUspsTokenServiceTemplate(), "AI: scaffold UspsTokenService.java")) {
-            return new AgentResult("CarrierAdapterAgent", false, "Failed to push UspsTokenService", Map.of());
-        }
-        if (!githubService.pushFileToGitHub(branchName, adapterBase + "/UspsAdapter.java",
-                getUspsAdapterTemplate(), "AI: scaffold UspsAdapter.java")) {
-            return new AgentResult("CarrierAdapterAgent", false, "Failed to push UspsAdapter", Map.of());
-        }
-        if (!githubService.pushFileToGitHub(branchName, testBase + "/UspsAdapterTest.java",
-                getUspsAdapterTestTemplate(), "AI: scaffold UspsAdapterTest.java")) {
-            return new AgentResult("CarrierAdapterAgent", false, "Failed to push UspsAdapterTest", Map.of());
-        }
+                ### Files generated:
+                %s
 
-        // 4. Open Pull Request on GitHub
-        String prBody = """
-                ## AI-Generated USPS Carrier Adapter Scaffolding
-                This Pull Request was generated by **CarrierAdapterAgent** to integrate USPS API support.
+                *AI Governance: HITL review required before merging.*
+                """, carrierName, taskDescription, fileList);
 
-                ### Files Scaffolded:
-                - `Carrier.java`: Registered `USPS` enum value.
-                - `UspsProperties.java`: Configurations for client credentials and endpoints.
-                - `UspsTokenService.java`: OAuth 2.0 Client credentials manager.
-                - `UspsAdapter.java`: `CarrierAdapter` mapping and REST integration using Spring `RestClient`.
-                - `UspsAdapterTest.java`: JUnit test cases.
-
-                *AI Governance: Approved for Merge pending human verification.*
-                """;
         String prUrl = githubService.createPullRequest(
-                "AI Integration: USPS Carrier Adapter Scaffolding",
+                "AI Integration: " + carrierName + " Carrier Adapter",
                 branchName,
                 "main",
                 prBody,
@@ -94,144 +132,38 @@ public class CarrierAdapterAgent implements AIAgent {
         );
 
         String outputSummary = String.format(
-                "Successfully scaffolded USPS Carrier Adapter!\nPR URL: %s\nFiles generated:\n- UspsProperties.java\n- UspsTokenService.java\n- UspsAdapter.java\n- UspsAdapterTest.java",
-                prUrl
-        );
+                "Successfully scaffolded %s Carrier Adapter!\nPR URL: %s\nFiles generated:\n%s",
+                carrierName, prUrl,
+                files.keySet().stream().map(p -> "- " + p).collect(Collectors.joining("\n")));
 
-        return new AgentResult(
-                "CarrierAdapterAgent",
-                true,
-                outputSummary,
-                Map.of("prUrl", prUrl)
-        );
+        return new AgentResult("CarrierAdapterAgent", true, outputSummary, Map.of("prUrl", prUrl));
     }
 
-    private String getUspsPropertiesTemplate() {
-        return """
-                package com.inxpress.middleware.adapter.usps;
-
-                import org.springframework.boot.context.properties.ConfigurationProperties;
-                import org.springframework.context.annotation.Configuration;
-
-                @Configuration
-                @ConfigurationProperties(prefix = "carrier.usps")
-                public class UspsProperties {
-                    private String baseUrl = "https://api.usps.com";
-                    private String clientId;
-                    private String clientSecret;
-                    private String accountNumber;
-
-                    public String getBaseUrl() { return baseUrl; }
-                    public void setBaseUrl(String baseUrl) { this.baseUrl = baseUrl; }
-                    public String getClientId() { return clientId; }
-                    public void setClientId(String clientId) { this.clientId = clientId; }
-                    public String getClientSecret() { return clientSecret; }
-                    public void setClientSecret(String clientSecret) { this.clientSecret = clientSecret; }
-                    public String getAccountNumber() { return accountNumber; }
-                    public void setAccountNumber(String accountNumber) { this.accountNumber = accountNumber; }
-                }
-                """;
+    private boolean ensureCarrierRegistered(String branchName, String carrierName) {
+        try {
+            GitHubIntegrationService.FileEntry carrierFile = githubService.getFileEntry(CARRIER_ENUM_PATH);
+            if (carrierFile.content().contains(carrierName)) {
+                return true;
+            }
+            String updatedContent = addCarrierConstant(carrierFile.content(), carrierName);
+            return githubService.pushFileToGitHub(branchName, CARRIER_ENUM_PATH, updatedContent,
+                    "AI: register " + carrierName + " enum value in Carrier.java", carrierFile.sha());
+        } catch (Exception e) {
+            log.error("Failed to read/update Carrier enum from GitHub", e);
+            return false;
+        }
     }
 
-    private String getUspsTokenServiceTemplate() {
-        return """
-                package com.inxpress.middleware.adapter.usps;
-
-                import org.springframework.stereotype.Service;
-                import org.springframework.web.client.RestClient;
-
-                @Service
-                public class UspsTokenService {
-                    private final UspsProperties properties;
-                    private final RestClient restClient;
-
-                    public UspsTokenService(UspsProperties properties) {
-                        this.properties = properties;
-                        this.restClient = RestClient.builder().baseUrl(properties.getBaseUrl()).build();
-                    }
-
-                    public String getAccessToken() {
-                        // Simulated token retrieval for USPS
-                        return "mock-usps-token";
-                    }
-                }
-                """;
+    private String addCarrierConstant(String content, String carrierName) {
+        int closingBraceIdx = content.lastIndexOf('}');
+        String before = content.substring(0, closingBraceIdx).stripTrailing();
+        String addition = before.endsWith(",") ? "\n    " + carrierName : ",\n    " + carrierName;
+        return before + addition + "\n" + content.substring(closingBraceIdx);
     }
 
-    private String getUspsAdapterTemplate() {
-        return """
-                package com.inxpress.middleware.adapter.usps;
-
-                import com.inxpress.middleware.adapter.CarrierAdapter;
-                import com.inxpress.middleware.domain.model.Carrier;
-                import com.inxpress.middleware.domain.model.Shipment;
-                import com.inxpress.middleware.domain.model.ShipmentStatus;
-                import org.springframework.stereotype.Component;
-                import java.math.BigDecimal;
-                import java.util.UUID;
-
-                @Component
-                public class UspsAdapter implements CarrierAdapter {
-
-                    private final UspsProperties properties;
-                    private final UspsTokenService tokenService;
-
-                    public UspsAdapter(UspsProperties properties, UspsTokenService tokenService) {
-                        this.properties = properties;
-                        this.tokenService = tokenService;
-                    }
-
-                    @Override
-                    public Carrier getCarrier() { return Carrier.USPS; }
-
-                    @Override
-                    public Shipment bookShipment(Shipment shipment) {
-                        shipment.setTrackingNumber("94001" + UUID.randomUUID().toString().substring(0, 15).toUpperCase());
-                        shipment.setStatus(ShipmentStatus.BOOKED);
-                        shipment.setTotalCost(quoteRate(shipment));
-                        return shipment;
-                    }
-
-                    @Override
-                    public BigDecimal quoteRate(Shipment shipment) {
-                        double totalWeight = shipment.getPackages().stream().mapToDouble(p -> p.weightInKg()).sum();
-                        return BigDecimal.valueOf(8.20 + (totalWeight * 1.50));
-                    }
-
-                    @Override
-                    public ShipmentStatus trackShipment(String trackingNumber) { return ShipmentStatus.IN_TRANSIT; }
-
-                    @Override
-                    public boolean cancelShipment(String trackingNumber) { return true; }
-                }
-                """;
-    }
-
-    private String getUspsAdapterTestTemplate() {
-        return """
-                package com.inxpress.middleware.adapter.usps;
-
-                import com.inxpress.middleware.domain.model.Carrier;
-                import org.junit.jupiter.api.Test;
-                import org.springframework.beans.factory.annotation.Autowired;
-                import org.springframework.boot.test.context.SpringBootTest;
-                import org.springframework.test.context.ActiveProfiles;
-
-                import static org.junit.jupiter.api.Assertions.*;
-
-                @SpringBootTest
-                @ActiveProfiles("test")
-                public class UspsAdapterTest {
-
-                    @Autowired
-                    private UspsAdapter uspsAdapter;
-
-                    @Test
-                    public void testUspsCarrierCode() {
-                        assertEquals(Carrier.USPS, uspsAdapter.getCarrier());
-                    }
-                }
-                """;
+    private AgentResult failure(String message) {
+        log.warn("CarrierAdapterAgent failed: {}", message);
+        return new AgentResult("CarrierAdapterAgent", false, message, Map.of());
     }
 
     @Override

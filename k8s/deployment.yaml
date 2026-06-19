@@ -15,10 +15,24 @@ spec:
       labels:
         app: inxpress-middleware
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
       containers:
       - name: middleware
-        image: <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/inxpress-middleware:latest
-        imagePullPolicy: Always
+        # ECR_REGISTRY and IMAGE_TAG are substituted by the CI/CD pipeline (envsubst) before apply.
+        # IMAGE_TAG must be an immutable tag (e.g. the commit SHA), never `latest`.
+        image: ${ECR_REGISTRY}/inxpress-middleware:${IMAGE_TAG}
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 1000
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: ["ALL"]
         ports:
         - containerPort: 8080
         env:
@@ -46,6 +60,33 @@ spec:
           value: "us-east-1"
         - name: AWS_SNS_TOPIC_ARN
           value: "arn:aws:sns:us-east-1:123456789012:shipment-events"
+        - name: AWS_SNS_AGENT_REVIEW_TOPIC_ARN
+          value: "arn:aws:sns:us-east-1:123456789012:agent-review-events"
+        - name: AWS_SQS_AGENT_TASKS_QUEUE_URL
+          value: "https://sqs.us-east-1.amazonaws.com/123456789012/agent-tasks"
+        - name: AWS_SQS_AGENT_TASKS_DLQ_URL
+          value: "https://sqs.us-east-1.amazonaws.com/123456789012/agent-tasks-dlq"
+        - name: AWS_DYNAMODB_AUDIT_TABLE
+          value: "agent-execution-audit"
+        - name: GITHUB_OWNER
+          value: "inxpress"
+        - name: GITHUB_REPO
+          value: "InXpressErpMiddleware"
+        - name: GITHUB_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: agent-credentials
+              key: github-token
+        - name: GITHUB_WEBHOOK_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: agent-credentials
+              key: github-webhook-secret
+        - name: CLAUDE_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: agent-credentials
+              key: claude-api-key
         resources:
           limits:
             cpu: "1"
@@ -55,16 +96,22 @@ spec:
             memory: 512Mi
         readinessProbe:
           httpGet:
-            path: /actuator/health
+            path: /actuator/health/readiness
             port: 8080
           initialDelaySeconds: 15
           periodSeconds: 10
         livenessProbe:
           httpGet:
-            path: /actuator/health
+            path: /actuator/health/liveness
             port: 8080
           initialDelaySeconds: 20
           periodSeconds: 20
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      volumes:
+      - name: tmp
+        emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
@@ -89,6 +136,10 @@ metadata:
     kubernetes.io/ingress.class: alb
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: ip
+    # ACM_CERTIFICATE_ARN is substituted by the CI/CD pipeline (envsubst) before apply.
+    alb.ingress.kubernetes.io/certificate-arn: ${ACM_CERTIFICATE_ARN}
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}, {"HTTP":80}]'
+    alb.ingress.kubernetes.io/ssl-redirect: '443'
 spec:
   rules:
   - http:

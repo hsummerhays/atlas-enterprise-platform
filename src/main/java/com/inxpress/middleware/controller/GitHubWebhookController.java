@@ -47,15 +47,17 @@ public class GitHubWebhookController {
         log.info("Received GitHub webhook event: {}", eventType);
 
         String webhookSecret = githubProperties.getWebhookSecret();
-        if (webhookSecret != null && !webhookSecret.isBlank()) {
-            if (signatureHeader == null) {
-                log.warn("Rejecting webhook: missing X-Hub-Signature-256 header");
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Missing X-Hub-Signature-256 header");
-            }
-            if (!verifySignature(rawBody, signatureHeader, webhookSecret)) {
-                log.warn("Rejecting webhook: invalid signature");
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid webhook signature");
-            }
+        if (webhookSecret == null || webhookSecret.isBlank()) {
+            log.error("Rejecting webhook: github.webhook-secret is not configured");
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body("Webhook receiver not configured");
+        }
+        if (signatureHeader == null) {
+            log.warn("Rejecting webhook: missing X-Hub-Signature-256 header");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Missing X-Hub-Signature-256 header");
+        }
+        if (!verifySignature(rawBody, signatureHeader, webhookSecret)) {
+            log.warn("Rejecting webhook: invalid signature");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid webhook signature");
         }
 
         Map<String, Object> payload;

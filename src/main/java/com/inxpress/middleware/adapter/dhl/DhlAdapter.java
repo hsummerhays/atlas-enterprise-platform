@@ -13,6 +13,9 @@ import org.springframework.web.client.RestClient;
 
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
@@ -51,18 +54,23 @@ public class DhlAdapter implements CarrierAdapter {
             return shipment;
         }
 
+        if (properties.getAccountNumber() == null || properties.getAccountNumber().isBlank()) {
+            throw new CarrierAdapterException("DHL account number is not configured");
+        }
+
         try {
             String credentials = properties.getUsername() + ":" + properties.getPassword();
             String encodedCredentials = Base64.getEncoder().encodeToString(credentials.getBytes(StandardCharsets.UTF_8));
 
             // Build DHL Express standard payload structure
             Map<String, Object> payload = Map.of(
-                "plannedShippingDateAndTime", "2026-06-18T10:00:00GMT+00:00",
+                "plannedShippingDateAndTime", OffsetDateTime.now(ZoneOffset.UTC)
+                        .format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'GMT+00:00'")),
                 "pickupType", "contactAndAddress",
                 "productCode", shipment.getServiceType(), // e.g. "P" or "D" for Express Worldwide
                 "accounts", List.of(Map.of(
                     "typeCode", "shipper",
-                    "number", properties.getAccountNumber() != null ? properties.getAccountNumber() : "123456789"
+                    "number", properties.getAccountNumber()
                 )),
                 "customerDetails", Map.of(
                     "shipperDetails", Map.of(

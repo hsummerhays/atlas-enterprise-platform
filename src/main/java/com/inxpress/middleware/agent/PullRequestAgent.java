@@ -27,10 +27,10 @@ public class PullRequestAgent implements AIAgent {
         log.info("PullRequestAgent executing code promotion workflow...");
 
         String taskDescription = request.inputData() != null ? request.inputData() : "Add a new feature";
-        String branchName = "feature/agent-" + taskDescription.toLowerCase()
+        String slug = taskDescription.toLowerCase()
                 .replaceAll("[^a-z0-9]+", "-")
-                .replaceAll("^-|-$", "")
-                .substring(0, Math.min(40, taskDescription.length()));
+                .replaceAll("^-|-$", "");
+        String branchName = "feature/agent-" + slug.substring(0, Math.min(40, slug.length()));
 
         String prUrl;
 
