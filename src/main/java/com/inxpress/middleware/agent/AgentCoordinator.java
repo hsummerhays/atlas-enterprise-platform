@@ -1,5 +1,6 @@
 package com.inxpress.middleware.agent;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.inxpress.middleware.domain.exception.LoadSheddingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,6 +28,7 @@ public class AgentCoordinator {
     private final AgentMetricsService metricsService;
     private final AgentAuditLogService auditLogService;
     private final SnsClient snsClient;
+    private final ObjectMapper objectMapper;
     private final AtomicInteger activeAgentCount = new AtomicInteger(0);
 
     @Value("${aws.sns.agent-review-topic-arn:}")
@@ -36,7 +38,7 @@ public class AgentCoordinator {
     private int loadSheddingThreshold;
 
     public AgentCoordinator(List<AIAgent> agentList, AgentMetricsService metricsService,
-                             AgentAuditLogService auditLogService, SnsClient snsClient) {
+                             AgentAuditLogService auditLogService, SnsClient snsClient, ObjectMapper objectMapper) {
         this.agents = agentList.stream()
                 .collect(Collectors.toMap(
                         agent -> agent.getClass().getSimpleName().toLowerCase(),
@@ -45,6 +47,7 @@ public class AgentCoordinator {
         this.metricsService = metricsService;
         this.auditLogService = auditLogService;
         this.snsClient = snsClient;
+        this.objectMapper = objectMapper;
     }
 
     public int getActiveAgentCount() {
@@ -107,10 +110,14 @@ public class AgentCoordinator {
             log.warn("agent-review-topic-arn not configured — skipping SNS notification for {} agent", agentName);
             return;
         }
-        String message = String.format(
-                "{\"executionId\":\"%s\",\"agentName\":\"%s\",\"approvalLevel\":\"%s\",\"prUrl\":\"%s\",\"action\":\"APPROVAL_REQUIRED\"}",
-                executionId, agentName, approvalLevel.name(), prUrl);
         try {
+            Map<String, String> payload = Map.of(
+                    "executionId", executionId,
+                    "agentName", agentName,
+                    "approvalLevel", approvalLevel.name(),
+                    "prUrl", prUrl,
+                    "action", "APPROVAL_REQUIRED");
+            String message = objectMapper.writeValueAsString(payload);
             snsClient.publish(PublishRequest.builder()
                     .topicArn(agentReviewTopicArn)
                     .message(message)

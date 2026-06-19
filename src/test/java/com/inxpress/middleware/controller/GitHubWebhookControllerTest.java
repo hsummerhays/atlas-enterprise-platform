@@ -97,14 +97,14 @@ class GitHubWebhookControllerTest {
     }
 
     @Test
-    void noSecretConfigured_skipsVerification_returns200() throws Exception {
+    void noSecretConfigured_rejectsRequest_returns503() throws Exception {
         when(githubProperties.getWebhookSecret()).thenReturn(null);
 
         mockMvc.perform(post("/api/v1/webhooks/github")
                         .contentType(MediaType.APPLICATION_JSON)
                         .header("X-GitHub-Event", "push")
                         .content("{}"))
-                .andExpect(status().isOk());
+                .andExpect(status().isServiceUnavailable());
     }
 
     private byte[] issuePayload(String title, String number) {

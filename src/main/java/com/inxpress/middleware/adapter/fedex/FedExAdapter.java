@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -51,6 +52,10 @@ public class FedExAdapter implements CarrierAdapter {
             return shipment;
         }
 
+        if (properties.getAccountNumber() == null || properties.getAccountNumber().isBlank()) {
+            throw new CarrierAdapterException("FedEx account number is not configured");
+        }
+
         try {
             String token = tokenService.getAccessToken();
 
@@ -86,7 +91,7 @@ public class FedExAdapter implements CarrierAdapter {
                             "countryCode", shipment.getRecipientAddress().countryCode()
                         )
                     )),
-                    "shipDatestamp", "2026-06-18",
+                    "shipDatestamp", LocalDate.now().toString(),
                     "serviceType", shipment.getServiceType(), // e.g. PRIORITY_OVERNIGHT, FEDEX_GROUND
                     "packagingType", "YOUR_PACKAGING",
                     "pickupType", "USE_HEADER-LEVEL_PICKUP_DECISION",
@@ -95,7 +100,7 @@ public class FedExAdapter implements CarrierAdapter {
                         "payor", Map.of(
                             "responsibleParty", Map.of(
                                 "accountNumber", Map.of(
-                                    "value", properties.getAccountNumber() != null ? properties.getAccountNumber() : "123456789"
+                                    "value", properties.getAccountNumber()
                                 )
                             )
                         )
@@ -115,7 +120,7 @@ public class FedExAdapter implements CarrierAdapter {
                         )).toList()
                 ),
                 "accountNumber", Map.of(
-                    "value", properties.getAccountNumber() != null ? properties.getAccountNumber() : "123456789"
+                    "value", properties.getAccountNumber()
                 )
             );
 

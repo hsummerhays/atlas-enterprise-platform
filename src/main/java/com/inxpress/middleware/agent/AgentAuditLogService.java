@@ -7,6 +7,8 @@ import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 import software.amazon.awssdk.services.dynamodb.model.PutItemRequest;
+import software.amazon.awssdk.services.sns.SnsClient;
+import software.amazon.awssdk.services.sns.model.PublishRequest;
 
 import java.time.Instant;
 import java.util.HashMap;
@@ -18,12 +20,18 @@ public class AgentAuditLogService {
     private static final Logger log = LoggerFactory.getLogger(AgentAuditLogService.class);
 
     private final DynamoDbClient dynamoDbClient;
+    private final SnsClient snsClient;
     private final String tableName;
+
+    @Value("${aws.sns.agent-review-topic-arn:}")
+    private String agentReviewTopicArn;
 
     public AgentAuditLogService(
             DynamoDbClient dynamoDbClient,
+            SnsClient snsClient,
             @Value("${aws.dynamodb.audit-table-name:agent-execution-audit}") String tableName) {
         this.dynamoDbClient = dynamoDbClient;
+        this.snsClient = snsClient;
         this.tableName = tableName;
     }
 
@@ -47,7 +55,25 @@ public class AgentAuditLogService {
                     .build());
             log.info("Audit log written: executionId={} agentName={} approvalLevel={}", executionId, agentName, approvalLevel);
         } catch (Exception e) {
-            log.error("Failed to write audit log for agent {}: {}", agentName, e.getMessage());
+            log.error("Failed to write audit log for agent {} (executionId={}): {}", agentName, executionId, e.getMessage(), e);
+            alertAuditFailure(executionId, agentName, e);
+        }
+    }
+
+    private void alertAuditFailure(String executionId, String agentName, Exception cause) {
+        if (agentReviewTopicArn == null || agentReviewTopicArn.isBlank()) {
+            log.warn("agent-review-topic-arn not configured — cannot alert on audit log failure for executionId={}", executionId);
+            return;
+        }
+        try {
+            snsClient.publish(PublishRequest.builder()
+                    .topicArn(agentReviewTopicArn)
+                    .subject("Agent audit log write failed: " + agentName)
+                    .message("Failed to persist HITL audit record. executionId=" + executionId
+                            + " agentName=" + agentName + " cause=" + cause.getMessage())
+                    .build());
+        } catch (Exception e) {
+            log.error("Failed to publish audit-log-failure alert for executionId={}: {}", executionId, e.getMessage());
         }
     }
 }

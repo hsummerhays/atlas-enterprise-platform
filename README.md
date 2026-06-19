@@ -11,7 +11,7 @@ The InXpress middleware architecture is designed around the industry-moving deve
     [ AI Implements ]     (Scaffolds code, test files via AIAgents)
            │
            ▼
-    [ CI Validates ]      (Automated Maven/Gradle tests & security checks)
+    [ CI Validates ]      (Automated Gradle tests & security checks)
            │
            ▼
    [ Humans Approve ]     (Manual review of PRs in GitHub)
@@ -49,8 +49,9 @@ This project implements a **Canonical Shipping Domain Model** to decouple client
 ## 🛠️ Getting Started
 
 ### Prerequisites
-* **JDK 25** (compiled output targets Java 21)
+* **Java 25 (Eclipse Temurin recommended)** — compiled output targets Java 21; CI and container builds both run on Temurin
 * **Gradle 9.4.1** (included wrapper script)
+* **Docker** (for building the container image locally)
 
 ### Build and Test
 To build the project and execute validation tests locally, run:
@@ -136,7 +137,7 @@ The middleware is integrated with SQS task queueing and GitHub webhook events to
 
 ## 🌙 Nightly AI Workflow (10 PM Job)
 
-Orchestrated using **AWS MWAA (Managed Workflows for Apache Airflow)**, the system triggers a nightly development and maintenance loop defined in [nightly_ai_workflow.py](file:///c:/HughApps/InXpressErpMiddleware/dags/nightly_ai_workflow.py):
+Orchestrated using **AWS MWAA (Managed Workflows for Apache Airflow)**, the system triggers a nightly development and maintenance loop defined in [nightly_ai_workflow.py](dags/nightly_ai_workflow.py):
 
 1. **Review Carrier Adapters (`CarrierAdapterAgent`)**: Automatically scans and researches API specification updates from FedEx/UPS/DHL sandbox environments.
 2. **Generate Missing Tests (`TestGenerationAgent`)**: Scans code diffs, identifies untested classes, and writes JUnit validation files.
@@ -181,7 +182,7 @@ The middleware supports a fully automated coding and review loop by connecting t
 ```
 
 ### Supported integrations:
-* **GitHub API Client**: Autonomic components invoke the [GitHubIntegrationService](file:///c:/HughApps/InXpressErpMiddleware/src/main/java/com/inxpress/middleware/service/GitHubIntegrationService.java) to dynamically query issues, build features on isolated branches, and push code suggestions.
+* **GitHub API Client**: Autonomic components invoke the [GitHubIntegrationService](src/main/java/com/inxpress/middleware/service/GitHubIntegrationService.java) to dynamically query issues, build features on isolated branches, and push code suggestions.
 * **Claude Code / GitHub MCP**: Future-proof integration designed to allow Claude Code agent instances to interact directly with EKS/RDS infrastructures using Model Context Protocol (MCP) tooling.
 * **GitHub Actions**: Hooks agent-generated PR branches into the CI pipeline, automatically running JUnit suites and security analyzers on commit events.
 
@@ -226,6 +227,12 @@ To maintain corporate security compliance, agent execution scopes are strictly r
 
 ---
 
-## 🚢 CI/CD Pipeline
-GitHub Actions automatically builds, compiles, tests, packages into a Docker image, pushes to Amazon ECR, and deploys/rolls out to AWS EKS on commits pushed to `main` branch.
+## 🚢 CI/CD & Kubernetes Deployment
+
+The deployment pipeline is fully automated via GitHub Actions and hardened for EKS:
+* **CI Validation**: Runs the full JUnit test suite via Gradle on **Eclipse Temurin JDK 25**, compiling for Java 21/25 targets.
+* **Container Hardening**: The Docker image (`eclipse-temurin:25-jdk-jammy`) runs as non-root (UID/GID 1000) with a `readOnlyRootFilesystem: true`, dropping all capabilities, and disabling privilege escalation. A dedicated writable `/tmp` emptyDir volume is mounted for transient file creation.
+* **Dynamic Template Interpolation**: The CI pipeline utilizes `envsubst` to dynamically populate `${ECR_REGISTRY}`, `${IMAGE_TAG}`, and `${ACM_CERTIFICATE_ARN}` into [deployment.yaml](k8s/deployment.yaml) before applying to EKS.
+* **Liveness & Readiness Probes**: Kubernetes health checks monitor application state using dedicated Spring Boot Actuator probes: `/actuator/health/liveness` and `/actuator/health/readiness`.
+* **ALB & Ingress Rules**: Employs AWS Load Balancer Controller with automated HTTPS redirection (redirecting HTTP port 80 to HTTPS port 443) and ACM SSL Certificate mapping.
 

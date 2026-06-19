@@ -40,6 +40,8 @@ public void pollAgentTaskQueue() { ... }
 
 ### 3. Claude LLM Integration (Adaptive Thinking)
 We invoke Claude OkHttp Java SDK (`com.anthropic:anthropic-java`) and configure `ThinkingConfigAdaptive` to perform raw file edits, prompts processing, and mapping generation.
+* **Dynamic Scaffolding**: Rather than using static placeholders, agents like `TestGenerationAgent`, `DocumentationAgent`, and `CarrierAdapterAgent` now dynamically consult Claude using dedicated system prompts to generate contextually relevant JUnit tests, OpenAPI specs, architecture write-ups, and carrier code files.
+* **Enum Registration**: The `CarrierAdapterAgent` automatically updates the filesystem `Carrier.java` enum by locating the closing brace and appending new carrier identifiers dynamically.
 
 ### 4. DynamoDB Execution Auditing
 Logs execution metrics (`executionId`, `agentName`, `approvalLevel`, `inputData`, `requestedBy`, `success`, `output`, `timestamp`) into an immutable `agent-execution-audit` table on every execution.
@@ -53,6 +55,17 @@ To protect the system from resource exhaustion (e.g. Claude API rate limits, dat
 * **Active Agent Tracking**: An `AtomicInteger` in `AgentCoordinator` tracks in-flight agent executions.
 * **HTTP/API Rate Limiting (429)**: Executing agents via REST endpoints when the count exceeds the threshold throws a `LoadSheddingException`, which translates to an `HTTP 429 Too Many Requests` response.
 * **SQS Polling Delay**: The SQS consumer checks the active count before polling. If it meets or exceeds the threshold, polling is skipped for that cycle, allowing messages to stay in SQS and avoiding receive count increments/DLQ routing.
+
+### 7. Kubernetes Security Hardening & Actuator Probes
+To satisfy corporate compliance and security requirements in EKS:
+* **Hardened Security Context**: The container runs under non-root (UID/GID 1000) settings, blocks privilege escalation (`allowPrivilegeEscalation: false`), mounts a read-only root filesystem, and drops all Linux kernel capabilities.
+* **Transient Mounts**: A `/tmp` emptyDir volume is mounted to allow local temporary file creation while preserving the read-only root filesystem constraint.
+* **Spring Boot Actuator Probes**: Separate HTTP endpoints are exposed for liveness (`/actuator/health/liveness`) and readiness (`/actuator/health/readiness`) checks.
+* **CI/CD Templating (`envsubst`)**: Environment configuration tags `${ECR_REGISTRY}`, `${IMAGE_TAG}`, and `${ACM_CERTIFICATE_ARN}` are injected into deployment templates in the CI runner.
+
+### 8. Strict Carrier Account Configuration Validation
+* **Security Controls**: Direct API adapters (FedEx, UPS, DHL) check for valid account number inputs before initiating carrier REST integrations.
+* **Validation Guards**: In case of blank configuration properties, the adapters throw `CarrierAdapterException` immediately rather than allowing dummy defaults to escape to sandbox/production environments.
 
 ---
 

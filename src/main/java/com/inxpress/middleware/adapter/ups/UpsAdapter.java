@@ -51,6 +51,10 @@ public class UpsAdapter implements CarrierAdapter {
             return shipment;
         }
 
+        if (properties.getAccountNumber() == null || properties.getAccountNumber().isBlank()) {
+            throw new CarrierAdapterException("UPS account number is not configured");
+        }
+
         try {
             String token = tokenService.getAccessToken();
 
@@ -68,7 +72,7 @@ public class UpsAdapter implements CarrierAdapter {
                         "Shipper", Map.of(
                             "Name", shipment.getSenderAddress().contactName(),
                             "AttentionName", shipment.getSenderAddress().companyName() != null ? shipment.getSenderAddress().companyName() : "",
-                            "ShipperNumber", properties.getAccountNumber() != null ? properties.getAccountNumber() : "123456",
+                            "ShipperNumber", properties.getAccountNumber(),
                             "Phone", Map.of("Number", shipment.getSenderAddress().phone()),
                             "Address", Map.of(
                                 "AddressLine", List.of(shipment.getSenderAddress().street1(), 
@@ -96,7 +100,7 @@ public class UpsAdapter implements CarrierAdapter {
                             "ShipmentCharge", Map.of(
                                 "Type", "01", // Transportation Charges
                                 "BillShipper", Map.of(
-                                    "AccountNumber", properties.getAccountNumber() != null ? properties.getAccountNumber() : "123456"
+                                    "AccountNumber", properties.getAccountNumber()
                                 )
                             )
                         ),
