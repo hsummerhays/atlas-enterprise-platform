@@ -1,6 +1,9 @@
 package com.inxpress.middleware.adapter.fedex;
 
 import com.inxpress.middleware.adapter.CarrierAdapter;
+import com.inxpress.middleware.adapter.auth.AuthenticationFactory;
+import com.inxpress.middleware.adapter.auth.CarrierAuthenticator;
+import com.inxpress.middleware.adapter.auth.CarrierConfiguration;
 import com.inxpress.middleware.domain.exception.CarrierAdapterException;
 import com.inxpress.middleware.domain.model.Carrier;
 import com.inxpress.middleware.domain.model.Shipment;
@@ -23,12 +26,15 @@ public class FedExAdapter implements CarrierAdapter {
     private static final Logger log = LoggerFactory.getLogger(FedExAdapter.class);
 
     private final FedExProperties properties;
-    private final FedExTokenService tokenService;
+    private final CarrierAuthenticator authenticator;
     private final RestClient restClient;
 
     public FedExAdapter(FedExProperties properties, FedExTokenService tokenService) {
         this.properties = properties;
-        this.tokenService = tokenService;
+        this.authenticator = AuthenticationFactory.createAuthenticator(
+                CarrierConfiguration.oauth(properties.getClientId(), properties.getClientSecret()),
+                tokenService::getAccessToken
+        );
         this.restClient = RestClient.builder()
                 .baseUrl(properties.getBaseUrl())
                 .build();
@@ -57,8 +63,6 @@ public class FedExAdapter implements CarrierAdapter {
         }
 
         try {
-            String token = tokenService.getAccessToken();
-
             // Build realistic FedEx Shipment request payload
             Map<String, Object> payload = Map.of(
                 "labelResponseOptions", "URL_ONLY",
@@ -127,7 +131,7 @@ public class FedExAdapter implements CarrierAdapter {
             @SuppressWarnings("unchecked")
             Map<String, Object> response = restClient.post()
                     .uri("/ship/v1/shipments")
-                    .header("Authorization", "Bearer " + token)
+                    .headers(httpHeaders -> authenticator.getAuthHeaders().forEach(httpHeaders::set))
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(payload)
                     .retrieve()

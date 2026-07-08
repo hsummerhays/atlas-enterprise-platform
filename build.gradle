@@ -7,6 +7,9 @@ plugins {
 group = 'com.inxpress'
 version = '0.0.1-SNAPSHOT'
 
+// Build with Java 25 toolchain, targeting Java 21 bytecode and APIs.
+// Developers benefit from the latest compiler tooling while production
+// remains on the Java 21 LTS runtime.
 java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(25)

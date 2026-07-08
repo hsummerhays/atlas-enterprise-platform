@@ -39,7 +39,7 @@ This project implements a **Canonical Shipping Domain Model** to decouple client
 
 ### Key Design Patterns & Technical Features:
 * **Canonical Domain Model**: Consolidates addresses, dimensions, weight metrics, and status enums across the systems.
-* **Adapter Pattern**: Decouples and standardizes REST calls to **FedEx (OAuth 2.0)**, **UPS (OAuth 2.0)**, and **DHL Express (HTTP Basic Auth)**.
+* **Adapter & Authenticator Strategy Patterns**: Decouples carrier-specific API adapters from their authentication mechanisms using the `CarrierAuthenticator` interface (with implementations such as `OAuthAuthenticator`, `BasicAuthenticator`, etc.). The client adapters call carrier APIs without needing to know *how* authentication is resolved.
 * **Flyway Migrations**: Clean, versioned schema management.
 * **Spring Security OAuth 2.0**: Secures all APIs using JWT validation with custom claim-to-role mappings.
 * **Modern Java Compilation**: Configured for Java 25 compiler with target compatibility release set to 21 for seamless Spring Boot ASM framework reading.
@@ -49,9 +49,24 @@ This project implements a **Canonical Shipping Domain Model** to decouple client
 ## 🛠️ Getting Started
 
 ### Prerequisites
-* **Java 25 (Eclipse Temurin recommended)** — compiled output targets Java 21; CI and container builds both run on Temurin
-* **Gradle 9.4.1** (included wrapper script)
-* **Docker** (for building the container image locally)
+
+- **Java 25 (Eclipse Temurin recommended)** — The project is built using a Java 25 toolchain while producing Java 21-compatible bytecode. CI and container builds also use Eclipse Temurin.
+- **Gradle 9.4.1** (wrapper included)
+- **Docker** (optional, for building the container image locally)
+
+> [!NOTE]
+> ### Why Java 25 Toolchain with a Java 21 Target?
+>
+> This project uses a Java 25 toolchain while compiling with `--release 21`.
+>
+> - **Production Compatibility (Java 21 LTS)**  
+>   Production servers run Java 21. Compiling for release 21 ensures the application runs without `UnsupportedClassVersionError`.
+>
+> - **Modern Development Tooling**  
+>   Developers can use the latest Java 25 JDK and benefit from compiler improvements, diagnostics, and IDE support while maintaining Java 21 compatibility.
+>
+> - **API Compatibility Enforcement**  
+>   Using `options.release = 21` restricts compilation to the Java 21 API. This prevents accidental use of newer language features or library classes that would not be available in production.
 
 ### Build and Test
 To build the project and execute validation tests locally, run:

@@ -1,6 +1,9 @@
 package com.inxpress.middleware.adapter.usps;
 
 import com.inxpress.middleware.adapter.CarrierAdapter;
+import com.inxpress.middleware.adapter.auth.AuthenticationFactory;
+import com.inxpress.middleware.adapter.auth.CarrierAuthenticator;
+import com.inxpress.middleware.adapter.auth.CarrierConfiguration;
 import com.inxpress.middleware.domain.model.Carrier;
 import com.inxpress.middleware.domain.model.Shipment;
 import com.inxpress.middleware.domain.model.ShipmentStatus;
@@ -12,11 +15,14 @@ import java.util.UUID;
 public class UspsAdapter implements CarrierAdapter {
 
     private final UspsProperties properties;
-    private final UspsTokenService tokenService;
+    private final CarrierAuthenticator authenticator;
 
     public UspsAdapter(UspsProperties properties, UspsTokenService tokenService) {
         this.properties = properties;
-        this.tokenService = tokenService;
+        this.authenticator = AuthenticationFactory.createAuthenticator(
+                CarrierConfiguration.oauth(properties.getBaseUrl(), "mock-secret"), // USPS simulated credentials
+                tokenService::getAccessToken
+        );
     }
 
     @Override

@@ -1,6 +1,9 @@
 package com.inxpress.middleware.adapter.ups;
 
 import com.inxpress.middleware.adapter.CarrierAdapter;
+import com.inxpress.middleware.adapter.auth.AuthenticationFactory;
+import com.inxpress.middleware.adapter.auth.CarrierAuthenticator;
+import com.inxpress.middleware.adapter.auth.CarrierConfiguration;
 import com.inxpress.middleware.domain.exception.CarrierAdapterException;
 import com.inxpress.middleware.domain.model.Carrier;
 import com.inxpress.middleware.domain.model.Shipment;
@@ -22,12 +25,15 @@ public class UpsAdapter implements CarrierAdapter {
     private static final Logger log = LoggerFactory.getLogger(UpsAdapter.class);
 
     private final UpsProperties properties;
-    private final UpsTokenService tokenService;
+    private final CarrierAuthenticator authenticator;
     private final RestClient restClient;
 
     public UpsAdapter(UpsProperties properties, UpsTokenService tokenService) {
         this.properties = properties;
-        this.tokenService = tokenService;
+        this.authenticator = AuthenticationFactory.createAuthenticator(
+                CarrierConfiguration.oauth(properties.getClientId(), properties.getClientSecret()),
+                tokenService::getAccessToken
+        );
         this.restClient = RestClient.builder()
                 .baseUrl(properties.getBaseUrl())
                 .build();
@@ -56,8 +62,6 @@ public class UpsAdapter implements CarrierAdapter {
         }
 
         try {
-            String token = tokenService.getAccessToken();
-
             // Build UPS shipment request payload
             Map<String, Object> payload = Map.of(
                 "ShipmentRequest", Map.of(
@@ -134,7 +138,7 @@ public class UpsAdapter implements CarrierAdapter {
             @SuppressWarnings("unchecked")
             Map<String, Object> response = restClient.post()
                     .uri("/api/shipments/v1/ship")
-                    .header("Authorization", "Bearer " + token)
+                    .headers(httpHeaders -> authenticator.getAuthHeaders().forEach(httpHeaders::set))
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(payload)
                     .retrieve()
