@@ -2,7 +2,6 @@ package com.inxpress.middleware.adapter.usps;
 
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
-import java.util.Map;
 
 @Service
 public class UspsTokenService {

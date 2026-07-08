@@ -1,6 +1,9 @@
 package com.inxpress.middleware.adapter.dhl;
 
 import com.inxpress.middleware.adapter.CarrierAdapter;
+import com.inxpress.middleware.adapter.auth.AuthenticationFactory;
+import com.inxpress.middleware.adapter.auth.CarrierAuthenticator;
+import com.inxpress.middleware.adapter.auth.CarrierConfiguration;
 import com.inxpress.middleware.domain.exception.CarrierAdapterException;
 import com.inxpress.middleware.domain.model.Carrier;
 import com.inxpress.middleware.domain.model.Shipment;
@@ -12,11 +15,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
 import java.math.BigDecimal;
-import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
-import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -27,10 +28,15 @@ public class DhlAdapter implements CarrierAdapter {
     private static final Logger log = LoggerFactory.getLogger(DhlAdapter.class);
 
     private final DhlProperties properties;
+    private final CarrierAuthenticator authenticator;
     private final RestClient restClient;
 
     public DhlAdapter(DhlProperties properties) {
         this.properties = properties;
+        this.authenticator = AuthenticationFactory.createAuthenticator(
+                CarrierConfiguration.basic(properties.getUsername(), properties.getPassword()),
+                null
+        );
         this.restClient = RestClient.builder()
                 .baseUrl(properties.getBaseUrl())
                 .build();
@@ -59,9 +65,6 @@ public class DhlAdapter implements CarrierAdapter {
         }
 
         try {
-            String credentials = properties.getUsername() + ":" + properties.getPassword();
-            String encodedCredentials = Base64.getEncoder().encodeToString(credentials.getBytes(StandardCharsets.UTF_8));
-
             // Build DHL Express standard payload structure
             Map<String, Object> payload = Map.of(
                 "plannedShippingDateAndTime", OffsetDateTime.now(ZoneOffset.UTC)
@@ -122,7 +125,7 @@ public class DhlAdapter implements CarrierAdapter {
             @SuppressWarnings("unchecked")
             Map<String, Object> response = restClient.post()
                     .uri("/shipments")
-                    .header("Authorization", "Basic " + encodedCredentials)
+                    .headers(httpHeaders -> authenticator.getAuthHeaders().forEach(httpHeaders::set))
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(payload)
                     .retrieve()
