@@ -32,14 +32,14 @@ This project implements a **Canonical Shipping Domain Model** to decouple client
        │ 
        ▼
 [ Shipment Service ]
-       │ ──► [ Carrier Registry ] ──► [ Carrier Adapters ] ──► [ FedEx / UPS / DHL APIs ]
+       │ ──► [ Carrier Registry ] ──► [ Carrier Adapters ] ──► [ FedEx / UPS / DHL / USPS APIs ]
        ├──► [ RDS PostgreSQL ] (JPA & Flyway Migrations)
        └──► [ AWS SNS/SQS ] (Async Lifecycle Events)
 ```
 
 ### Key Design Patterns & Technical Features:
 * **Canonical Domain Model**: Consolidates addresses, dimensions, weight metrics, and status enums across the systems.
-* **Adapter & Authenticator Strategy Patterns**: Decouples carrier-specific API adapters from their authentication mechanisms using the `CarrierAuthenticator` interface (with implementations such as `OAuthAuthenticator`, `BasicAuthenticator`, etc.). The client adapters call carrier APIs without needing to know *how* authentication is resolved.
+* **Adapter & Authenticator Strategy Patterns**: Decouples carrier-specific API adapters (`FedExAdapter`, `UpsAdapter`, `DhlAdapter`, `UspsAdapter`) from their authentication mechanisms. A `CarrierConfiguration` record describes how a given carrier authenticates (`oauth`, `basic`, `apikey`, `mtls`), and `AuthenticationFactory` resolves it to a concrete `CarrierAuthenticator` implementation (`OAuthAuthenticator`, `BasicAuthenticator`, `ApiKeyAuthenticator`, `MtlsAuthenticator`). The client adapters call carrier APIs without needing to know *how* authentication is resolved.
 * **Flyway Migrations**: Clean, versioned schema management.
 * **Spring Security OAuth 2.0**: Secures all APIs using JWT validation with custom claim-to-role mappings.
 * **Modern Java Compilation**: Configured for Java 25 compiler with target compatibility release set to 21 for seamless Spring Boot ASM framework reading.
@@ -92,6 +92,8 @@ To run the Spring Boot server locally (by default on port `8080`):
 | `GET` | `/api/v1/shipments/track/{trackingNumber}` | Tracks shipment status | `ROLE_SHIPPING_USER` |
 | `POST` | `/api/v1/shipments/cancel/{trackingNumber}` | Cancels the shipment with the carrier | `ROLE_SHIPPING_ADMIN` |
 
+> Supported carriers (`Carrier` enum): **FedEx, UPS, DHL, USPS**.
+
 ---
 
 ## 🤖 AI Agent Layer (Highest Priority)
@@ -101,9 +103,9 @@ The middleware embeds an autonomic AI Agent Layer designed to automate developer
 ```
 [ Agent Controller ] ──► [ Agent Coordinator ]
                                 │
-        ┌───────────────────────┼───────────────────────┐
-        ▼                       ▼                       ▼
-[DocumentationAgent]    [TestGenerationAgent]   [RefactoringAgent]
+        ┌───────────────────────┼───────────────────────┬───────────────────────┐
+        ▼                       ▼                       ▼                       ▼
+[DocumentationAgent]    [TestGenerationAgent]   [RefactoringAgent]       [PullRequestAgent]
         ▼                                               ▼
 [CarrierAdapterAgent]                           [SecurityReviewAgent]
 ```
@@ -114,11 +116,13 @@ The middleware embeds an autonomic AI Agent Layer designed to automate developer
 * **Refactoring Agent**: Code scanner suggesting performance improvements (e.g., Spring Boot 4 virtual thread optimization rules).
 * **Carrier Adapter Agent**: Automatically researches carrier REST specification updates and formats updates into canonical models.
 * **Security Review Agent**: Performs automated security reviews, virtual thread scopes verification, and dependency auditing.
+* **Pull Request Agent**: Flagship orchestrator that delegates to sub-agents, verifies the Gradle build compiles, and opens the consolidated Pull Request.
 
 ### REST Endpoints:
 | Method | Endpoint | Description | Required Role |
 |---|---|---|---|
 | `GET` | `/api/v1/agents` | Lists all registered AI Agents | `ROLE_SHIPPING_ADMIN` |
+| `GET` | `/api/v1/agents/metrics` | Returns per-agent KPI metrics (PRs generated/accepted, time saved, cycle time reduction) | `ROLE_SHIPPING_ADMIN` |
 | `POST` | `/api/v1/agents/{name}/execute` | Triggers a specific AI agent execution | `ROLE_SHIPPING_ADMIN` |
 
 ---
@@ -143,7 +147,7 @@ The middleware is integrated with SQS task queueing and GitHub webhook events to
                             [ AgentAuditLogService ] ──► [ DynamoDB: agent-execution-audit ]
 ```
 
-* **Webhook Endpoint (`/api/v1/webhooks/github`)**: Listens for GitHub Issue opened webhooks, verifies authenticity using **HMAC-SHA256 signatures** via `X-Hub-Signature-256`, dynamically matches search keywords (like `test`, `carrier`, `doc`, `security`) to resolve the target agent, and publishes the task payload to SQS.
+* **Webhook Endpoint (`/api/v1/webhooks/github`)**: Listens for GitHub Issue opened webhooks, verifies authenticity using **HMAC-SHA256 signatures** via `X-Hub-Signature-256`, dynamically matches title/body keywords (`test`/`coverage`, `carrier`/`adapter`/carrier names, `doc`/`openapi`/`readme`, `security`/`vulnerability`/`cve`, `refactor`/`performance`/`optimize`) to resolve the target agent — falling back to `PullRequestAgent` for unmatched issues — and publishes the task payload to SQS.
 * **SQS Task Consumer (`SqsAgentTaskConsumer`)**: Continually polls the SQS queue using **SQS Long Polling** (`waitTimeSeconds=20`) to minimize API requests. Automatically detects **poison messages** and routes them to a **Dead Letter Queue (DLQ)** after exceeding `maxReceiveCount` retries.
 * **Claude LLM Client (`ClaudeService`)**: Integrates Anthropic OkHttp Java SDK, configuring Adaptive Thinking features to enable advanced reasoning capabilities.
 * **DynamoDB Auditing (`AgentAuditLogService`)**: Automatically logs the execution ID, agent name, approval level, input data, success status, output results, and timestamps to the `agent-execution-audit` DynamoDB table on every run.

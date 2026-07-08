@@ -11,7 +11,7 @@ This document summarizes the core architectural principles, high-level direction
 * **Benefits**: Minimizes the impact of third-party API changes on core business logic and enables unified data formats across EKS microservices.
 
 ### 2. Carrier Adapter & Authenticator Design Pattern
-* **Extensible Scaffolding**: Using a plug-and-play adapter contract (`CarrierAdapter`) for carriers like FedEx, UPS, and DHL.
+* **Extensible Scaffolding**: Using a plug-and-play adapter contract (`CarrierAdapter`) for carriers like FedEx, UPS, DHL, and USPS.
 * **Decoupled Authentication Strategy**: Utilizes the `CarrierAuthenticator` strategy interface to isolate client/API request orchestration from auth details (OAuth, HTTP Basic, API Keys, mTLS).
 * **Benefits**: Simplifies adding new carrier pipelines without breaking existing implementations, allows easy reuse of common authentication patterns, and prevents security/credentials leaking into request construction logic.
 

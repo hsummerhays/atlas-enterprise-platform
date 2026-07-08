@@ -7,6 +7,9 @@ paths:
   /api/v1/shipments:
     post:
       summary: Create shipment
+      description: Requires ROLE_SHIPPING_USER or ROLE_SHIPPING_ADMIN.
+      security:
+        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -19,6 +22,9 @@ paths:
   /api/v1/shipments/{id}/book:
     post:
       summary: Book shipment with Carrier
+      description: Requires ROLE_SHIPPING_ADMIN.
+      security:
+        - bearerAuth: []
       parameters:
         - name: id
           in: path
@@ -28,3 +34,126 @@ paths:
       responses:
         '200':
           description: Shipment booked successfully
+  /api/v1/shipments/rates:
+    post:
+      summary: Fetch a comparison of rate quotes across carriers
+      description: Requires ROLE_SHIPPING_USER, ROLE_SHIPPING_ADMIN, or SCOPE_shipments:read.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Map of carrier (FEDEX, UPS, DHL, USPS) to quoted rate
+  /api/v1/shipments/track/{trackingNumber}:
+    get:
+      summary: Track shipment status with the resolved carrier
+      description: Requires ROLE_SHIPPING_USER or ROLE_SHIPPING_ADMIN.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: trackingNumber
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Current shipment status
+  /api/v1/shipments/cancel/{trackingNumber}:
+    post:
+      summary: Cancel the shipment with the carrier
+      description: Requires ROLE_SHIPPING_ADMIN.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: trackingNumber
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Shipment cancelled successfully
+  /api/v1/agents:
+    get:
+      summary: List all registered AI Agents
+      description: Requires ROLE_SHIPPING_ADMIN.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Array of registered agent names
+  /api/v1/agents/metrics:
+    get:
+      summary: Get per-agent KPI metrics (PRs generated/accepted, time saved, cycle time reduction)
+      description: Requires ROLE_SHIPPING_ADMIN.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Array of AgentMetrics records
+  /api/v1/agents/{name}/execute:
+    post:
+      summary: Trigger a specific AI agent execution
+      description: Requires ROLE_SHIPPING_ADMIN.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Agent name (e.g. documentationagent, testgenerationagent, refactoringagent, carrieradapteragent, securityreviewagent, pullrequestagent)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [inputData]
+              properties:
+                inputData:
+                  type: string
+                context:
+                  type: object
+      responses:
+        '200':
+          description: AgentResult with success flag, output, and metadata
+  /api/v1/webhooks/github:
+    post:
+      summary: GitHub Issues webhook receiver — enqueues an agent task on SQS for "opened" issues
+      description: >
+        Publicly reachable but requires a valid X-Hub-Signature-256 HMAC-SHA256 signature
+        computed with the configured github.webhook-secret.
+      parameters:
+        - name: X-GitHub-Event
+          in: header
+          required: true
+          schema:
+            type: string
+        - name: X-Hub-Signature-256
+          in: header
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Event handled or enqueued
+        '400':
+          description: Invalid JSON payload or missing issue payload
+        '401':
+          description: Missing or invalid webhook signature
+        '503':
+          description: Webhook receiver not configured (missing webhook secret)
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

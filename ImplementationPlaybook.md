@@ -21,7 +21,9 @@ public interface AIAgent {
 ```
 
 ### 2. Specialized Agent Definitions
+* **`DocumentationAgent`**: Consults Claude to regenerate `docs/openapi.yaml` and `docs/architecture.md`, then opens a PR with the changes.
 * **`TestGenerationAgent`**: Writes functional JUnit integrations and runs coverage validation.
+* **`RefactoringAgent`**: Scans code for performance/virtual-thread optimization opportunities and proposes changes.
 * **`CarrierAdapterAgent`**: Directly edits the filesystem `Carrier.java` enum and scaffolds classes (Properties, TokenServices, Adapters, Tests).
 * **`PullRequestAgent`**: Spawns sub-processes, checks Gradle compiles, stages/commits, and calls PR endpoints.
 * **`SecurityReviewAgent`**: Analyzes dependency CVEs and virtual thread locks.
@@ -64,7 +66,7 @@ To satisfy corporate compliance and security requirements in EKS:
 * **CI/CD Templating (`envsubst`)**: Environment configuration tags `${ECR_REGISTRY}`, `${IMAGE_TAG}`, and `${ACM_CERTIFICATE_ARN}` are injected into deployment templates in the CI runner.
 
 ### 8. Strict Carrier Account Configuration Validation
-* **Security Controls**: Direct API adapters (FedEx, UPS, DHL) check for valid account number inputs before initiating carrier REST integrations.
+* **Security Controls**: Direct API adapters (FedEx, UPS, DHL, USPS) check for valid account number inputs before initiating carrier REST integrations.
 * **Validation Guards**: In case of blank configuration properties, the adapters throw `CarrierAdapterException` immediately rather than allowing dummy defaults to escape to sandbox/production environments.
 
 ---
