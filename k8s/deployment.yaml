@@ -1,19 +1,19 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: inxpress-middleware
+  name: atlas-enterprise-platform
   namespace: shipping
   labels:
-    app: inxpress-middleware
+    app: atlas-enterprise-platform
 spec:
   replicas: 3
   selector:
     matchLabels:
-      app: inxpress-middleware
+      app: atlas-enterprise-platform
   template:
     metadata:
       labels:
-        app: inxpress-middleware
+        app: atlas-enterprise-platform
     spec:
       securityContext:
         runAsNonRoot: true
@@ -23,7 +23,7 @@ spec:
       - name: middleware
         # ECR_REGISTRY and IMAGE_TAG are substituted by the CI/CD pipeline (envsubst) before apply.
         # IMAGE_TAG must be an immutable tag (e.g. the commit SHA), never `latest`.
-        image: ${ECR_REGISTRY}/inxpress-middleware:${IMAGE_TAG}
+        image: ${ECR_REGISTRY}/atlas-enterprise-platform:${IMAGE_TAG}
         imagePullPolicy: IfNotPresent
         securityContext:
           runAsNonRoot: true
@@ -37,11 +37,11 @@ spec:
         - containerPort: 8080
         env:
         - name: DB_HOST
-          value: "inxpress-rds.c123456789.us-east-1.rds.amazonaws.com"
+          value: "atlas-rds.c123456789.us-east-1.rds.amazonaws.com"
         - name: DB_PORT
           value: "5432"
         - name: DB_NAME
-          value: "inxpress_db"
+          value: "atlas_db"
         - name: DB_USER
           valueFrom:
             secretKeyRef:
@@ -69,9 +69,9 @@ spec:
         - name: AWS_DYNAMODB_AUDIT_TABLE
           value: "agent-execution-audit"
         - name: GITHUB_OWNER
-          value: "inxpress"
+          value: "atlas"
         - name: GITHUB_REPO
-          value: "InXpressErpMiddleware"
+          value: "AtlasErpMiddleware"
         - name: GITHUB_TOKEN
           valueFrom:
             secretKeyRef:
@@ -116,11 +116,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: inxpress-middleware-service
+  name: atlas-enterprise-platform-service
   namespace: shipping
 spec:
   selector:
-    app: inxpress-middleware
+    app: atlas-enterprise-platform
   ports:
   - protocol: TCP
     port: 80
@@ -130,7 +130,7 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: inxpress-middleware-ingress
+  name: atlas-enterprise-platform-ingress
   namespace: shipping
   annotations:
     kubernetes.io/ingress.class: alb
@@ -148,6 +148,6 @@ spec:
         pathType: Prefix
         backend:
           service:
-            name: inxpress-middleware-service
+            name: atlas-enterprise-platform-service
             port:
               number: 80

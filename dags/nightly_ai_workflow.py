@@ -4,11 +4,11 @@ from airflow.providers.http.operators.http import SimpleHttpOperator
 import json
 
 default_args = {
-    'owner': 'inxpress-ops',
+    'owner': 'atlas-ops',
     'depends_on_past': False,
     'start_date': datetime(2026, 6, 17),
     'email_on_failure': True,
-    'email': ['ops-alerts@inxpress.com'],
+    'email': ['ops-alerts@atlas.com'],
     'retries': 2,
     'retry_delay': timedelta(minutes=5),
 }
@@ -25,7 +25,7 @@ with DAG(
     # 1. Review Carrier Adapters using CarrierAdapterAgent
     review_carrier_adapters = SimpleHttpOperator(
         task_id='review_carrier_adapters',
-        http_conn_id='inxpress_middleware_api',
+        http_conn_id='atlas_middleware_api',
         endpoint='/api/v1/agents/carrieradapteragent/execute',
         method='POST',
         headers={"Content-Type": "application/json"},
@@ -39,7 +39,7 @@ with DAG(
     # 2. Generate Missing Tests using TestGenerationAgent
     generate_missing_tests = SimpleHttpOperator(
         task_id='generate_missing_tests',
-        http_conn_id='inxpress_middleware_api',
+        http_conn_id='atlas_middleware_api',
         endpoint='/api/v1/agents/testgenerationagent/execute',
         method='POST',
         headers={"Content-Type": "application/json"},
@@ -53,7 +53,7 @@ with DAG(
     # 3. Update System Documentation using DocumentationAgent
     update_documentation = SimpleHttpOperator(
         task_id='update_documentation',
-        http_conn_id='inxpress_middleware_api',
+        http_conn_id='atlas_middleware_api',
         endpoint='/api/v1/agents/documentationagent/execute',
         method='POST',
         headers={"Content-Type": "application/json"},
@@ -67,7 +67,7 @@ with DAG(
     # 4. Trigger Refactoring and Security Review
     security_and_refactoring_review = SimpleHttpOperator(
         task_id='security_and_refactoring_review',
-        http_conn_id='inxpress_middleware_api',
+        http_conn_id='atlas_middleware_api',
         endpoint='/api/v1/agents/securityreviewagent/execute',
         method='POST',
         headers={"Content-Type": "application/json"},

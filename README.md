@@ -1,6 +1,6 @@
 # InXpress ERP Shipping Middleware
 
-A production-ready Shipping Middleware built using **Java 25** and **Spring Boot 4 / Jakarta EE 11** designed to standardize shipping operations for InXpress and integrate seamlessly with HubSpot CRM.
+A production-oriented reference implementation Shipping Middleware built using **Java 25** and **Spring Boot 4 / Jakarta EE 11** designed to standardize shipping operations for InXpress and integrate with HubSpot CRM.
 
 ## 🎓 The Modern AI Software Development Loop
 The InXpress middleware architecture is designed around the industry-moving developer operations paradigm:
@@ -51,7 +51,7 @@ This project implements a **Canonical Shipping Domain Model** to decouple client
 ### Prerequisites
 
 - **Java 25 (Eclipse Temurin recommended)** — The project is built using a Java 25 toolchain while producing Java 21-compatible bytecode. CI and container builds also use Eclipse Temurin.
-- **Gradle 9.4.1** (wrapper included)
+- **Gradle 9.1.0** (wrapper included)
 - **Docker** (optional, for building the container image locally)
 
 > [!NOTE]
@@ -98,7 +98,7 @@ To run the Spring Boot server locally (by default on port `8080`):
 
 ## 🤖 AI Agent Layer (Highest Priority)
 
-The middleware embeds an autonomic AI Agent Layer designed to automate developer operations, carrier research, and financial auditing tasks:
+The middleware embeds an AI Agent Layer designed to automate developer operations, carrier research, and financial auditing tasks:
 
 ```
 [ Agent Controller ] ──► [ Agent Coordinator ]
@@ -129,7 +129,7 @@ The middleware embeds an autonomic AI Agent Layer designed to automate developer
 
 ## ⚡ SQS Integration & GitHub Webhook Triggers
 
-The middleware is integrated with SQS task queueing and GitHub webhook events to support zero-touch asynchronous execution:
+The middleware is integrated with SQS task queueing and GitHub webhook events to support asynchronous execution:
 
 ```
 [ GitHub Issue Opened ] ──► [ GitHubWebhookController ] (HMAC Signature Verified)

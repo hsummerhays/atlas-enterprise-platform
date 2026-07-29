@@ -1,7 +1,0 @@
-package com.inxpress.middleware.domain.exception;
-
-public class ShipmentNotFoundException extends RuntimeException {
-    public ShipmentNotFoundException(String message) {
-        super(message);
-    }
-}

@@ -19,6 +19,9 @@ jobs:
     - name: Checkout Code
       uses: actions/checkout@v4
 
+    - name: Validate Gradle Wrapper
+      uses: gradle/actions/wrapper-validation@v4
+
     - name: Set up Eclipse Temurin JDK 25
       uses: actions/setup-java@v4
       with:
@@ -48,7 +51,7 @@ jobs:
       if: env.HAS_AWS_ROLE == 'true'
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        ECR_REPOSITORY: inxpress-middleware
+        ECR_REPOSITORY: atlas-enterprise-platform
         IMAGE_TAG: ${{ github.sha }}
       run: |
         docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
@@ -68,5 +71,5 @@ jobs:
         ACM_CERTIFICATE_ARN: ${{ secrets.ACM_CERTIFICATE_ARN }}
       run: |
         envsubst < k8s/deployment.yaml | kubectl apply -f -
-        kubectl rollout status deployment/inxpress-middleware -n shipping
+        kubectl rollout status deployment/atlas-enterprise-platform -n shipping
 

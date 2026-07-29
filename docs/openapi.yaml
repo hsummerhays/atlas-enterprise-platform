@@ -1,6 +1,6 @@
 openapi: 3.0.3
 info:
-  title: InXpress Shipping Middleware API
+  title: Atlas Enterprise Shipping API
   version: 1.0.0
   description: Standardized shipping domain endpoint specifications.
 paths:
