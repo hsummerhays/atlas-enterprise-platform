@@ -20,7 +20,7 @@ spec:
         runAsUser: 1000
         fsGroup: 1000
       containers:
-      - name: middleware
+      - name: atlas-shipping-app
         # ECR_REGISTRY and IMAGE_TAG are substituted by the CI/CD pipeline (envsubst) before apply.
         # IMAGE_TAG must be an immutable tag (e.g. the commit SHA), never `latest`.
         image: ${ECR_REGISTRY}/atlas-enterprise-platform:${IMAGE_TAG}
@@ -60,33 +60,6 @@ spec:
           value: "us-east-1"
         - name: AWS_SNS_TOPIC_ARN
           value: "arn:aws:sns:us-east-1:123456789012:shipment-events"
-        - name: AWS_SNS_AGENT_REVIEW_TOPIC_ARN
-          value: "arn:aws:sns:us-east-1:123456789012:agent-review-events"
-        - name: AWS_SQS_AGENT_TASKS_QUEUE_URL
-          value: "https://sqs.us-east-1.amazonaws.com/123456789012/agent-tasks"
-        - name: AWS_SQS_AGENT_TASKS_DLQ_URL
-          value: "https://sqs.us-east-1.amazonaws.com/123456789012/agent-tasks-dlq"
-        - name: AWS_DYNAMODB_AUDIT_TABLE
-          value: "agent-execution-audit"
-        - name: GITHUB_OWNER
-          value: "atlas"
-        - name: GITHUB_REPO
-          value: "AtlasErpMiddleware"
-        - name: GITHUB_TOKEN
-          valueFrom:
-            secretKeyRef:
-              name: agent-credentials
-              key: github-token
-        - name: GITHUB_WEBHOOK_SECRET
-          valueFrom:
-            secretKeyRef:
-              name: agent-credentials
-              key: github-webhook-secret
-        - name: CLAUDE_API_KEY
-          valueFrom:
-            secretKeyRef:
-              name: agent-credentials
-              key: claude-api-key
         resources:
           limits:
             cpu: "1"

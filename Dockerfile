@@ -8,11 +8,13 @@ COPY gradlew /app/gradlew
 COPY settings.gradle /app/settings.gradle
 COPY build.gradle /app/build.gradle
 
-# Copy source code
-COPY src /app/src
+# atlas-agent-platform/build.gradle must exist so Gradle can evaluate settings.gradle's
+# included projects, even though this image only builds atlas-shipping-app.
+COPY atlas-agent-platform/build.gradle /app/atlas-agent-platform/build.gradle
+COPY atlas-shipping-app /app/atlas-shipping-app
 
-# Build the application
-RUN ./gradlew bootJar --no-daemon -x test
+# Build the shipping application only
+RUN ./gradlew :atlas-shipping-app:bootJar --no-daemon -x test
 
 # Stage 2: Runtime image
 FROM eclipse-temurin:25-jdk-jammy
@@ -24,7 +26,7 @@ RUN addgroup --system --gid 1000 appgroup \
     && adduser --system --uid 1000 --gid 1000 --no-create-home --shell /usr/sbin/nologin appuser
 
 WORKDIR /app
-COPY --from=builder --chown=appuser:appgroup /app/build/libs/*.jar app.jar
+COPY --from=builder --chown=appuser:appgroup /app/atlas-shipping-app/build/libs/*.jar app.jar
 
 USER 1000:1000
 
