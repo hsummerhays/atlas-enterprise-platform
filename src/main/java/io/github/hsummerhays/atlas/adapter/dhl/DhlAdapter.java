@@ -1,6 +1,6 @@
 package io.github.hsummerhays.atlas.adapter.dhl;
 
-import io.github.hsummerhays.atlas.adapter.CarrierAdapter;
+import io.github.hsummerhays.atlas.adapter.AbstractCarrierAdapter;
 import io.github.hsummerhays.atlas.adapter.auth.AuthenticationFactory;
 import io.github.hsummerhays.atlas.adapter.auth.CarrierAuthenticator;
 import io.github.hsummerhays.atlas.adapter.auth.CarrierConfiguration;
@@ -20,10 +20,9 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 @Component
-public class DhlAdapter implements CarrierAdapter {
+public class DhlAdapter extends AbstractCarrierAdapter {
 
     private static final Logger log = LoggerFactory.getLogger(DhlAdapter.class);
 
@@ -53,11 +52,7 @@ public class DhlAdapter implements CarrierAdapter {
 
         // Fallback behavior if credentials are not configured
         if (properties.getUsername() == null || properties.getUsername().isBlank()) {
-            log.warn("DHL credentials not configured. Using fallback sandbox mock.");
-            shipment.setTrackingNumber("DHL-MOCK-" + UUID.randomUUID().toString().substring(0, 10).toUpperCase());
-            shipment.setStatus(ShipmentStatus.BOOKED);
-            shipment.setTotalCost(quoteRate(shipment));
-            return shipment;
+            return mockBooking(shipment, "credentials not configured", randomMockTrackingNumber("DHL-MOCK-"));
         }
 
         if (properties.getAccountNumber() == null || properties.getAccountNumber().isBlank()) {

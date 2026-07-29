@@ -18,8 +18,6 @@ public class CarrierAdapterAgent implements AIAgent {
 
     private static final Logger log = LoggerFactory.getLogger(CarrierAdapterAgent.class);
 
-    private static final String CARRIER_ENUM_PATH = "src/main/java/io/github/hsummerhays/atlas/domain/model/Carrier.java";
-
     private static final Pattern CARRIER_LINE = Pattern.compile("^CARRIER:\\s*([A-Z0-9_]+)", Pattern.MULTILINE);
     private static final Pattern FILE_BLOCK = Pattern.compile(
             "===FILE:\\s*(.+?)\\s*===\\s*\\n(.*?)(?=\\n===FILE:|\\z)", Pattern.DOTALL);
@@ -61,10 +59,12 @@ public class CarrierAdapterAgent implements AIAgent {
 
     private final GitHubIntegrationService githubService;
     private final ClaudeService claudeService;
+    private final CarrierEnumRegistrar enumRegistrar;
 
     public CarrierAdapterAgent(GitHubIntegrationService githubService, ClaudeService claudeService) {
         this.githubService = githubService;
         this.claudeService = claudeService;
+        this.enumRegistrar = new CarrierEnumRegistrar(githubService);
     }
 
     @Override
@@ -99,7 +99,7 @@ public class CarrierAdapterAgent implements AIAgent {
             return failure("Failed to create branch: " + branchName);
         }
 
-        if (!ensureCarrierRegistered(branchName, carrierName)) {
+        if (!enumRegistrar.ensureRegistered(branchName, carrierName)) {
             return failure("Failed to register " + carrierName + " in Carrier.java");
         }
 
@@ -137,28 +137,6 @@ public class CarrierAdapterAgent implements AIAgent {
                 files.keySet().stream().map(p -> "- " + p).collect(Collectors.joining("\n")));
 
         return new AgentResult("CarrierAdapterAgent", true, outputSummary, Map.of("prUrl", prUrl));
-    }
-
-    private boolean ensureCarrierRegistered(String branchName, String carrierName) {
-        try {
-            GitHubIntegrationService.FileEntry carrierFile = githubService.getFileEntry(CARRIER_ENUM_PATH);
-            if (carrierFile.content().contains(carrierName)) {
-                return true;
-            }
-            String updatedContent = addCarrierConstant(carrierFile.content(), carrierName);
-            return githubService.pushFileToGitHub(branchName, CARRIER_ENUM_PATH, updatedContent,
-                    "AI: register " + carrierName + " enum value in Carrier.java", carrierFile.sha());
-        } catch (Exception e) {
-            log.error("Failed to read/update Carrier enum from GitHub", e);
-            return false;
-        }
-    }
-
-    private String addCarrierConstant(String content, String carrierName) {
-        int closingBraceIdx = content.lastIndexOf('}');
-        String before = content.substring(0, closingBraceIdx).stripTrailing();
-        String addition = before.endsWith(",") ? "\n    " + carrierName : ",\n    " + carrierName;
-        return before + addition + "\n" + content.substring(closingBraceIdx);
     }
 
     private AgentResult failure(String message) {

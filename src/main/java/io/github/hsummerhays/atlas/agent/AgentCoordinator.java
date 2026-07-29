@@ -1,21 +1,15 @@
 package io.github.hsummerhays.atlas.agent;
 
-import tools.jackson.databind.ObjectMapper;
-import io.github.hsummerhays.atlas.domain.exception.LoadSheddingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import software.amazon.awssdk.services.sns.SnsClient;
-import software.amazon.awssdk.services.sns.model.PublishRequest;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -27,18 +21,12 @@ public class AgentCoordinator {
     private final Map<String, AIAgent> agents;
     private final AgentMetricsService metricsService;
     private final AgentAuditLogService auditLogService;
-    private final SnsClient snsClient;
-    private final ObjectMapper objectMapper;
-    private final AtomicInteger activeAgentCount = new AtomicInteger(0);
-
-    @Value("${aws.sns.agent-review-topic-arn:}")
-    private String agentReviewTopicArn;
-
-    @Value("${app.load-shedding.threshold:5}")
-    private int loadSheddingThreshold;
+    private final LoadSheddingGuard loadSheddingGuard;
+    private final AgentApprovalNotifier approvalNotifier;
 
     public AgentCoordinator(List<AIAgent> agentList, AgentMetricsService metricsService,
-                             AgentAuditLogService auditLogService, SnsClient snsClient, ObjectMapper objectMapper) {
+                             AgentAuditLogService auditLogService, LoadSheddingGuard loadSheddingGuard,
+                             AgentApprovalNotifier approvalNotifier) {
         this.agents = agentList.stream()
                 .collect(Collectors.toMap(
                         agent -> agent.getClass().getSimpleName().toLowerCase(),
@@ -46,29 +34,25 @@ public class AgentCoordinator {
                 ));
         this.metricsService = metricsService;
         this.auditLogService = auditLogService;
-        this.snsClient = snsClient;
-        this.objectMapper = objectMapper;
+        this.loadSheddingGuard = loadSheddingGuard;
+        this.approvalNotifier = approvalNotifier;
     }
 
     public int getActiveAgentCount() {
-        return activeAgentCount.get();
+        return loadSheddingGuard.getActiveCount();
     }
 
     public int getThreshold() {
-        return loadSheddingThreshold;
+        return loadSheddingGuard.getThreshold();
     }
 
     public AgentResult runAgent(String agentName, AgentRequest request) {
         AIAgent agent = Optional.ofNullable(agents.get(agentName.toLowerCase()))
                 .orElseThrow(() -> new IllegalArgumentException("Unknown AI Agent: " + agentName));
 
-        int active = activeAgentCount.incrementAndGet();
+        int active = loadSheddingGuard.enter();
         try {
-            if (active > loadSheddingThreshold) {
-                throw new LoadSheddingException(String.format(
-                        "System load threshold exceeded. Active agents: %d, Threshold: %d. Rejecting execution for agent: %s",
-                        active - 1, loadSheddingThreshold, agentName));
-            }
+            loadSheddingGuard.enforceCapacity(active, agentName);
 
             String executionId = UUID.randomUUID().toString();
             MDC.put("executionId", executionId);
@@ -90,7 +74,7 @@ public class AgentCoordinator {
                     metricsService.recordPrGenerated(agentName, timeSavedMinutes);
 
                     if (approvalLevel == ApprovalLevel.SECURITY || approvalLevel == ApprovalLevel.ARCHITECTURE) {
-                        notifyApprovalRequired(agentName, approvalLevel,
+                        approvalNotifier.notifyApprovalRequired(agentName, approvalLevel,
                                 (String) enrichedResult.metadata().get("prUrl"), executionId);
                     }
                 }
@@ -101,31 +85,7 @@ public class AgentCoordinator {
                 MDC.remove("executionId");
             }
         } finally {
-            activeAgentCount.decrementAndGet();
-        }
-    }
-
-    private void notifyApprovalRequired(String agentName, ApprovalLevel approvalLevel, String prUrl, String executionId) {
-        if (agentReviewTopicArn == null || agentReviewTopicArn.isBlank()) {
-            log.warn("agent-review-topic-arn not configured — skipping SNS notification for {} agent", agentName);
-            return;
-        }
-        try {
-            Map<String, String> payload = Map.of(
-                    "executionId", executionId,
-                    "agentName", agentName,
-                    "approvalLevel", approvalLevel.name(),
-                    "prUrl", prUrl,
-                    "action", "APPROVAL_REQUIRED");
-            String message = objectMapper.writeValueAsString(payload);
-            snsClient.publish(PublishRequest.builder()
-                    .topicArn(agentReviewTopicArn)
-                    .message(message)
-                    .subject("Agent PR Requires Human Approval: " + agentName)
-                    .build());
-            log.info("SNS approval notification sent for {} agent PR: {}", agentName, prUrl);
-        } catch (Exception e) {
-            log.error("Failed to publish SNS approval notification for agent {}: {}", agentName, e.getMessage());
+            loadSheddingGuard.exit();
         }
     }
 

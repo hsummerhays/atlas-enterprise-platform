@@ -61,7 +61,7 @@ jobs:
     - name: Set up Kubeconfig for EKS
       if: env.HAS_AWS_ROLE == 'true'
       run: |
-        aws eks update-kubeconfig --region us-east-1 --name inxpress-eks-cluster
+        aws eks update-kubeconfig --region us-east-1 --name atlas-eks-cluster
 
     - name: Deploy to Kubernetes (EKS)
       if: env.HAS_AWS_ROLE == 'true'

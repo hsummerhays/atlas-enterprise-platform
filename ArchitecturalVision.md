@@ -1,6 +1,6 @@
-# InXpress ERP Shipping Middleware: Architectural Vision & Principles
+# Atlas Enterprise Platform: Architectural Vision & Principles
 
-This document summarizes the core architectural principles, high-level direction, and engineering culture driving the InXpress Shipping Middleware project. It is designed to outline strategic technical goals and vision.
+This document summarizes the core architectural principles, high-level direction, and engineering culture driving the Atlas Enterprise Platform project. It is designed to outline strategic technical goals and vision.
 
 ---
 
@@ -41,7 +41,7 @@ This document summarizes the core architectural principles, high-level direction
 
 > *"My goal is not to replace engineers with AI, but to amplify engineers by automating repetitive work so teams can focus on architecture, business outcomes, and customer value."*
 
-> *"I've been experimenting with AI-native engineering workflows and agent-assisted development in my personal projects. I'd be excited to explore how those concepts could be applied at InXpress in a way that fits the team's goals, existing systems, and collaborative processes."*
+> *"I've been experimenting with AI-native engineering workflows and agent-assisted development in my personal projects. I'd be excited to explore how those concepts could be applied at Atlas in a way that fits the team's goals, existing systems, and collaborative processes."*
 
 ### Key Values Demonstrated:
 * **Hands-on experience** with state-of-the-art engineering tools.
@@ -64,7 +64,7 @@ If asked about AI-generated PRs:
 
 ### 1. The 2-Minute Whiteboard Story
 Use this hook naturally during conversations about AI-generated PRs:
-> *"After our conversation about AI-generated PRs, I started experimenting with an AI-native shipping middleware architecture in my spare time. The idea is to combine carrier adapters, event-driven systems, and AI agents that can generate tests, documentation, and pull requests under human supervision."*
+> *"After our conversation about AI-generated PRs, I started experimenting with an AI-native shipping platform architecture in my spare time. The idea is to combine carrier adapters, event-driven systems, and AI agents that can generate tests, documentation, and pull requests under human supervision."*
 *Stop there. Let their curiosity drive follow-up questions.*
 
 ### 2. The DevOps Loop Diagram (Whiteboard/Share)
@@ -76,7 +76,7 @@ Issue/Task ➔ AI Agent ➔ Code/Tests Scaffolding ➔ Open PR ➔ CI/CD Validat
 ### 3. Progressive Reveal Levels (If Asked to Show More)
 Only advance levels as requested by the panel:
 * **Level 1 (Concept)**: Present the system architecture diagram.
-* **Level 2 (Structure)**: Show the high-level project package layout (`src/main/java/com/inxpress/middleware/...`).
+* **Level 2 (Structure)**: Show the high-level project package layout (`src/main/java/io/github/hsummerhays/atlas/...`).
 * **Level 3 (Demonstration)**: Walk through a working agent task execution result (e.g. showing generated JUnit test output or SQS webhook trigger).
 * **Level 4 (Source Code)**: Share specific implementation files *only* if contextually appropriate and requested.
 

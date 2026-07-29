@@ -1,9 +1,9 @@
-# InXpress ERP Shipping Middleware
+# Atlas Enterprise Platform
 
-A production-oriented reference implementation Shipping Middleware built using **Java 25** and **Spring Boot 4 / Jakarta EE 11** designed to standardize shipping operations for InXpress and integrate with HubSpot CRM.
+A production-oriented reference implementation Shipping Platform built using **Java 25** and **Spring Boot 4 / Jakarta EE 11** designed to standardize shipping operations for Atlas and integrate with HubSpot CRM.
 
 ## 🎓 The Modern AI Software Development Loop
-The InXpress middleware architecture is designed around the industry-moving developer operations paradigm:
+The Atlas Enterprise Platform architecture is designed around the industry-moving developer operations paradigm:
 ```
 [ Humans Define Intent ]
            │ (Issues, Spec Changes, Prompts)
@@ -42,7 +42,7 @@ This project implements a **Canonical Shipping Domain Model** to decouple client
 * **Adapter & Authenticator Strategy Patterns**: Decouples carrier-specific API adapters (`FedExAdapter`, `UpsAdapter`, `DhlAdapter`, `UspsAdapter`) from their authentication mechanisms. A `CarrierConfiguration` record describes how a given carrier authenticates (`oauth`, `basic`, `apikey`, `mtls`), and `AuthenticationFactory` resolves it to a concrete `CarrierAuthenticator` implementation (`OAuthAuthenticator`, `BasicAuthenticator`, `ApiKeyAuthenticator`, `MtlsAuthenticator`). The client adapters call carrier APIs without needing to know *how* authentication is resolved.
 * **Flyway Migrations**: Clean, versioned schema management.
 * **Spring Security OAuth 2.0**: Secures all APIs using JWT validation with custom claim-to-role mappings.
-* **Modern Java Compilation**: Configured for Java 25 compiler with target compatibility release set to 21 for seamless Spring Boot ASM framework reading.
+* **Modern Java Compilation**: Configured for Java 25 compiler with target compatibility release set to 25 for seamless Spring Boot ASM framework reading.
 
 ---
 
@@ -50,23 +50,11 @@ This project implements a **Canonical Shipping Domain Model** to decouple client
 
 ### Prerequisites
 
-- **Java 25 (Eclipse Temurin recommended)** — The project is built using a Java 25 toolchain while producing Java 21-compatible bytecode. CI and container builds also use Eclipse Temurin.
+- **Java 25 (Eclipse Temurin recommended)** — The project is built using a Java 25 toolchain while producing Java 25-compatible bytecode. CI and container builds also use Eclipse Temurin.
 - **Gradle 9.1.0** (wrapper included)
 - **Docker** (optional, for building the container image locally)
 
-> [!NOTE]
-> ### Why Java 25 Toolchain with a Java 21 Target?
->
-> This project uses a Java 25 toolchain while compiling with `--release 21`.
->
-> - **Production Compatibility (Java 21 LTS)**  
->   Production servers run Java 21. Compiling for release 21 ensures the application runs without `UnsupportedClassVersionError`.
->
-> - **Modern Development Tooling**  
->   Developers can use the latest Java 25 JDK and benefit from compiler improvements, diagnostics, and IDE support while maintaining Java 21 compatibility.
->
-> - **API Compatibility Enforcement**  
->   Using `options.release = 21` restricts compilation to the Java 21 API. This prevents accidental use of newer language features or library classes that would not be available in production.
+
 
 ### Build and Test
 To build the project and execute validation tests locally, run:
@@ -98,7 +86,7 @@ To run the Spring Boot server locally (by default on port `8080`):
 
 ## 🤖 AI Agent Layer (Highest Priority)
 
-The middleware embeds an AI Agent Layer designed to automate developer operations, carrier research, and financial auditing tasks:
+The platform embeds an AI Agent Layer designed to automate developer operations, carrier research, and financial auditing tasks:
 
 ```
 [ Agent Controller ] ──► [ Agent Coordinator ]
@@ -129,7 +117,7 @@ The middleware embeds an AI Agent Layer designed to automate developer operation
 
 ## ⚡ SQS Integration & GitHub Webhook Triggers
 
-The middleware is integrated with SQS task queueing and GitHub webhook events to support asynchronous execution:
+The platform is integrated with SQS task queueing and GitHub webhook events to support asynchronous execution:
 
 ```
 [ GitHub Issue Opened ] ──► [ GitHubWebhookController ] (HMAC Signature Verified)
@@ -179,7 +167,7 @@ Orchestrated using **AWS MWAA (Managed Workflows for Apache Airflow)**, the syst
 
 ## 🐙 GitHub Integration & Autonomous DevOps Loop
 
-The middleware supports a fully automated coding and review loop by connecting to the **GitHub REST API** to execute tasks from ticket to deployment:
+The platform supports a fully automated coding and review loop by connecting to the **GitHub REST API** to execute tasks from ticket to deployment:
 
 ```
 [ GitHub Issue / Webhook ]
@@ -201,7 +189,7 @@ The middleware supports a fully automated coding and review loop by connecting t
 ```
 
 ### Supported integrations:
-* **GitHub API Client**: Autonomic components invoke the [GitHubIntegrationService](src/main/java/com/inxpress/middleware/service/GitHubIntegrationService.java) to dynamically query issues, build features on isolated branches, and push code suggestions.
+* **GitHub API Client**: Autonomic components invoke the [GitHubIntegrationService](src/main/java/io/github/hsummerhays/atlas/service/GitHubIntegrationService.java) to dynamically query issues, build features on isolated branches, and push code suggestions.
 * **Claude Code / GitHub MCP**: Future-proof integration designed to allow Claude Code agent instances to interact directly with EKS/RDS infrastructures using Model Context Protocol (MCP) tooling.
 * **GitHub Actions**: Hooks agent-generated PR branches into the CI pipeline, automatically running JUnit suites and security analyzers on commit events.
 
@@ -249,7 +237,7 @@ To maintain corporate security compliance, agent execution scopes are strictly r
 ## 🚢 CI/CD & Kubernetes Deployment
 
 The deployment pipeline is fully automated via GitHub Actions and hardened for EKS:
-* **CI Validation**: Runs the full JUnit test suite via Gradle on **Eclipse Temurin JDK 25**, compiling for Java 21/25 targets.
+* **CI Validation**: Runs the full JUnit test suite via Gradle on **Eclipse Temurin JDK 25**, compiling for Java 25 targets.
 * **Container Hardening**: The Docker image (`eclipse-temurin:25-jdk-jammy`) runs as non-root (UID/GID 1000) with a `readOnlyRootFilesystem: true`, dropping all capabilities, and disabling privilege escalation. A dedicated writable `/tmp` emptyDir volume is mounted for transient file creation.
 * **Dynamic Template Interpolation**: The CI pipeline utilizes `envsubst` to dynamically populate `${ECR_REGISTRY}`, `${IMAGE_TAG}`, and `${ACM_CERTIFICATE_ARN}` into [deployment.yaml](k8s/deployment.yaml) before applying to EKS.
 * **Liveness & Readiness Probes**: Kubernetes health checks monitor application state using dedicated Spring Boot Actuator probes: `/actuator/health/liveness` and `/actuator/health/readiness`.

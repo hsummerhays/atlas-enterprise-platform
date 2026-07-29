@@ -1,4 +1,4 @@
-# InXpress Middleware Architecture
+# Atlas Enterprise Platform Architecture
 
 System architecture design and structural layout.
 
@@ -97,7 +97,7 @@ sequenceDiagram
 ## Component Map
 
 ```
-com.inxpress.middleware
+io.github.hsummerhays.atlas
 ├── adapter           FedEx / UPS / DHL / USPS carrier adapters + CarrierRegistry
 │   └── auth           CarrierConfiguration, AuthenticationFactory, CarrierAuthenticator impls
 ├── agent              AIAgent implementations, AgentCoordinator, AgentController, SQS consumer

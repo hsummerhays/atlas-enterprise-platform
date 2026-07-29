@@ -1,4 +1,4 @@
-# InXpress Middleware: Proprietary Implementation Details & Code execution
+# Atlas Enterprise Platform: Proprietary Implementation Details & Code execution
 
 *CONFIDENTIAL: For post-hire execution and reference.*
 

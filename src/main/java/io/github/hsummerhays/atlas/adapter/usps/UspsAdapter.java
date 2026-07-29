@@ -1,6 +1,6 @@
 package io.github.hsummerhays.atlas.adapter.usps;
 
-import io.github.hsummerhays.atlas.adapter.CarrierAdapter;
+import io.github.hsummerhays.atlas.adapter.AbstractCarrierAdapter;
 import io.github.hsummerhays.atlas.adapter.auth.AuthenticationFactory;
 import io.github.hsummerhays.atlas.adapter.auth.CarrierAuthenticator;
 import io.github.hsummerhays.atlas.adapter.auth.CarrierConfiguration;
@@ -12,7 +12,7 @@ import java.math.BigDecimal;
 import java.util.UUID;
 
 @Component
-public class UspsAdapter implements CarrierAdapter {
+public class UspsAdapter extends AbstractCarrierAdapter {
 
     private final UspsProperties properties;
     private final CarrierAuthenticator authenticator;
@@ -30,10 +30,8 @@ public class UspsAdapter implements CarrierAdapter {
 
     @Override
     public Shipment bookShipment(Shipment shipment) {
-        shipment.setTrackingNumber("94001" + UUID.randomUUID().toString().substring(0, 15).toUpperCase());
-        shipment.setStatus(ShipmentStatus.BOOKED);
-        shipment.setTotalCost(quoteRate(shipment));
-        return shipment;
+        String trackingNumber = "94001" + UUID.randomUUID().toString().substring(0, 15).toUpperCase();
+        return mockBooking(shipment, "not yet integrated with a live carrier API", trackingNumber);
     }
 
     @Override

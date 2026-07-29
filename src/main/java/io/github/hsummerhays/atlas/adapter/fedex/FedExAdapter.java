@@ -1,6 +1,6 @@
 package io.github.hsummerhays.atlas.adapter.fedex;
 
-import io.github.hsummerhays.atlas.adapter.CarrierAdapter;
+import io.github.hsummerhays.atlas.adapter.AbstractCarrierAdapter;
 import io.github.hsummerhays.atlas.adapter.auth.AuthenticationFactory;
 import io.github.hsummerhays.atlas.adapter.auth.CarrierAuthenticator;
 import io.github.hsummerhays.atlas.adapter.auth.CarrierConfiguration;
@@ -18,10 +18,9 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 @Component
-public class FedExAdapter implements CarrierAdapter {
+public class FedExAdapter extends AbstractCarrierAdapter {
 
     private static final Logger log = LoggerFactory.getLogger(FedExAdapter.class);
 
@@ -51,11 +50,7 @@ public class FedExAdapter implements CarrierAdapter {
 
         // Fallback to mock behavior if client ID/secret are not configured
         if (properties.getClientId() == null || properties.getClientId().isBlank()) {
-            log.warn("FedEx client credentials not configured. Using fallback sandbox mock.");
-            shipment.setTrackingNumber("FX-MOCK-" + UUID.randomUUID().toString().substring(0, 10).toUpperCase());
-            shipment.setStatus(ShipmentStatus.BOOKED);
-            shipment.setTotalCost(quoteRate(shipment));
-            return shipment;
+            return mockBooking(shipment, "client credentials not configured", randomMockTrackingNumber("FX-MOCK-"));
         }
 
         if (properties.getAccountNumber() == null || properties.getAccountNumber().isBlank()) {

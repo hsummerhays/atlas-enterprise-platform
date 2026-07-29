@@ -7,9 +7,9 @@ plugins {
 group = 'com.atlas'
 version = '0.0.1-SNAPSHOT'
 
-// Build with Java 25 toolchain, targeting Java 21 bytecode and APIs.
+// Build with Java 25 toolchain, targeting Java 25 bytecode and APIs.
 // Developers benefit from the latest compiler tooling while production
-// remains on the Java 21 LTS runtime.
+// remains on the Java 25 LTS runtime.
 java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(25)
@@ -17,7 +17,7 @@ java {
 }
 
 tasks.withType(JavaCompile).configureEach {
-    options.release = 21
+    
 }
 
 repositories {
