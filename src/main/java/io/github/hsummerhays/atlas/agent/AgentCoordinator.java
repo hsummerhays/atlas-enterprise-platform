@@ -1,6 +1,6 @@
 package io.github.hsummerhays.atlas.agent;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import io.github.hsummerhays.atlas.domain.exception.LoadSheddingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

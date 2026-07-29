@@ -1,6 +1,6 @@
 plugins {
     id 'java'
-    id 'org.springframework.boot' version '3.4.3' // Using the latest Spring Boot 3.x/4.x compatible release for Java 25
+    id 'org.springframework.boot' version '4.1.0' // Using the latest Spring Boot 3.x/4.x compatible release for Java 25
     id 'io.spring.dependency-management' version '1.1.7'
 }
 
@@ -52,6 +52,7 @@ dependencies {
     // Testing
     testImplementation 'com.h2database:h2'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
     testImplementation 'org.springframework.security:spring-security-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }

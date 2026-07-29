@@ -1,7 +1,7 @@
 package io.github.hsummerhays.atlas.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 import io.github.hsummerhays.atlas.domain.model.Shipment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,7 +50,7 @@ public class ShipmentEventPublisher {
                     .build();
 
             snsClient.publish(request);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             log.error("Failed to serialize shipment event payload", e);
         } catch (Exception e) {
             log.warn("Failed to publish event to AWS SNS (Verify AWS credentials/topics): {}", e.getMessage());
