@@ -37,7 +37,7 @@ spec:
         - containerPort: 8080
         env:
         - name: DB_HOST
-          value: "atlas-rds.c123456789.us-east-1.rds.amazonaws.com"
+          value: "your-rds-endpoint.amazonaws.com"
         - name: DB_PORT
           value: "5432"
         - name: DB_NAME
